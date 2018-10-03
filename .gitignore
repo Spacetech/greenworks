@@ -5,7 +5,5 @@ lib/
 test/steam_appid.txt
 steam_appid.txt
 *.swp
-*.dylib
-*.node
 .vscode/.browse.VC.db-wal
 .vscode/.BROWSE.VC.DB-shm
