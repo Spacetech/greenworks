@@ -772,7 +772,50 @@ namespace
 			success_callback, error_callback, unsubscribed_file_id));
 		info.GetReturnValue().Set(Nan::Undefined());
 	}
+	
+	NAN_METHOD(UGCStartPlaytimeTracking)
+	{
+		Nan::HandleScope scope;
+		
+		if (info.Length() < 1 || !info[0]->IsArray())
+		{
+			THROW_BAD_ARGS("Bad arguments");
+		}
 
+		PublishedFileId_t published_file_id[100];
+		
+		v8::Local<v8::Array> array = info[0].As<v8::Array>();
+		
+		auto length = array->Length();
+		
+		if (length >= 100)
+		{
+			THROW_BAD_ARGS("Too many items");
+		}
+		
+		for (uint32_t i = 0; i < length; ++i)
+		{
+			if (!array->Get(i)->IsNumber()) {
+				THROW_BAD_ARGS("Bad arguments");
+			}
+			
+			published_file_id[i] = utils::strToUint64(*(v8::String::Utf8Value(array->Get(i))));
+		}
+		
+		SteamUGC()->StartPlaytimeTracking(published_file_id, length);
+		
+		info.GetReturnValue().Set(Nan::Undefined());
+	}
+	
+	NAN_METHOD(UGCStopPlaytimeTracking)
+	{
+		Nan::HandleScope scope;
+		
+		SteamUGC()->StopPlaytimeTrackingForAllItems();
+		
+		info.GetReturnValue().Set(Nan::Undefined());
+	}
+	
 	NAN_METHOD(CreateArchive)
 	{
 		Nan::HandleScope scope;
@@ -1216,7 +1259,12 @@ namespace
 			Nan::New<v8::FunctionTemplate>(UGCShowOverlay)->GetFunction());
 		exports->Set(Nan::New("ugcUnsubscribe").ToLocalChecked(),
 			Nan::New<v8::FunctionTemplate>(UGCUnsubscribe)->GetFunction());
-
+			
+		exports->Set(Nan::New("startPlaytimeTracking").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(UGCStartPlaytimeTracking)->GetFunction());
+		exports->Set(Nan::New("stopPlaytimeTracking").ToLocalChecked(),
+			Nan::New<v8::FunctionTemplate>(UGCStopPlaytimeTracking)->GetFunction());
+			
 		// Friend related apis
 		exports->Set(Nan::New("setRichPresence").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SetRichPresence)->GetFunction());
 		exports->Set(Nan::New("clearRichPresence").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ClearRichPresence)->GetFunction());
