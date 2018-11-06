@@ -10,6 +10,8 @@ $bashPath = (($root -replace "\\","/") -replace ":","").ToLower().Trim("/")
 
 Remove-Item $root\lib -Force -Recurse -ErrorAction SilentlyContinue
 
+npm install
+
 node-gyp rebuild --target=$version --arch=ia32 --dist-url=https://atom.io/download/electron
 
 node-gyp rebuild --target=$version --arch=x64 --dist-url=https://atom.io/download/electron
