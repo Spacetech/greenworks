@@ -173,10 +173,9 @@ namespace greenworks
     class StoreUserStatsWorker : public SteamCallbackAsyncWorker
     {
       public:
-        StoreUserStatsWorker(Nan::Callback* success_callback,
-                             Nan::Callback* error_callback);
+        StoreUserStatsWorker(Nan::Callback* success_callback, Nan::Callback* error_callback);
         STEAM_CALLBACK(StoreUserStatsWorker,
-                       OnStoreUserStatsCompleted,
+                       OnUserStatsStored,
                        UserStatsStored_t,
                        result);
 

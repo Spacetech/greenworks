@@ -163,7 +163,9 @@ namespace greenworks
 
         steam_user_stats->SetAchievement(achievement_.c_str());
         if (!steam_user_stats->StoreStats())
+        {
             SetErrorMessage("Error on storing user achievement");
+        }
     }
 
     GetAchievementWorker::GetAchievementWorker(
@@ -232,8 +234,7 @@ namespace greenworks
     void GetNumberOfPlayersWorker::Execute()
     {
         SteamAPICall_t steam_api_call = SteamUserStats()->GetNumberOfCurrentPlayers();
-        call_result_.Set(steam_api_call, this,
-                         &GetNumberOfPlayersWorker::OnGetNumberOfPlayersCompleted);
+        call_result_.Set(steam_api_call, this, &GetNumberOfPlayersWorker::OnGetNumberOfPlayersCompleted);
 
         WaitForCompleted();
     }
@@ -307,16 +308,21 @@ namespace greenworks
     StoreUserStatsWorker::StoreUserStatsWorker(Nan::Callback* success_callback,
                                                Nan::Callback* error_callback)
         : SteamCallbackAsyncWorker(success_callback, error_callback),
-          result(this, &StoreUserStatsWorker::OnStoreUserStatsCompleted) {}
+          result(this, &StoreUserStatsWorker::OnUserStatsStored) {}
 
     void StoreUserStatsWorker::Execute()
     {
-        SteamUserStats()->StoreStats();
-        WaitForCompleted();
+        if (SteamUserStats()->StoreStats())
+        {
+            WaitForCompleted();
+        }
+        else
+        {
+            SetErrorMessage("Error storing user stats");
+        }
     }
 
-    void StoreUserStatsWorker::OnStoreUserStatsCompleted(
-        UserStatsStored_t* result)
+    void StoreUserStatsWorker::OnUserStatsStored(UserStatsStored_t* result)
     {
         if (result->m_eResult != k_EResultOK)
         {
@@ -326,6 +332,7 @@ namespace greenworks
         {
             game_id_ = result->m_nGameID;
         }
+
         is_completed_ = true;
     }
 
