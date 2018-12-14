@@ -82,8 +82,9 @@ namespace
 
         if (success)
         {
-            ISteamUserStats* stream_user_stats = SteamUserStats();
-            stream_user_stats->RequestCurrentStats();
+            ISteamUserStats* steam_user_stats = SteamUserStats();
+            steam_user_stats->RequestCurrentStats();
+            steam_user_stats->RequestGlobalStats(1); 
 
             if (steamCallbacks == nullptr)
             {
@@ -1196,6 +1197,42 @@ namespace
         info.GetReturnValue().Set(Nan::Undefined());
     }
 
+    NAN_METHOD(GetGlobalStatInt)
+    {
+        Nan::HandleScope scope;
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string name = (*(v8::String::Utf8Value(info[0])));
+        int64 result = 0;
+        if (SteamUserStats()->GetGlobalStat(name.c_str(), &result))
+        {
+            info.GetReturnValue().Set((int32)result);
+            return;
+        }
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+
+    NAN_METHOD(GetGlobalStatFloat)
+    {
+        Nan::HandleScope scope;
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string name = (*(v8::String::Utf8Value(info[0])));
+        double result = 0;
+        if (SteamUserStats()->GetGlobalStat(name.c_str(), &result))
+        {
+            info.GetReturnValue().Set(result);
+            return;
+        }
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+    
     NAN_METHOD(SetStat)
     {
         Nan::HandleScope scope;
@@ -1324,6 +1361,8 @@ namespace
         // Stat apis
         exports->Set(Nan::New("getStatInt").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetStatInt)->GetFunction());
         exports->Set(Nan::New("getStatFloat").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetStatFloat)->GetFunction());
+        exports->Set(Nan::New("getGlobalStatInt").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetGlobalStatInt)->GetFunction());
+        exports->Set(Nan::New("getGlobalStatFloat").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetGlobalStatFloat)->GetFunction());
         exports->Set(Nan::New("setStat").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SetStat)->GetFunction());
         exports->Set(Nan::New("storeStats").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(StoreStats)->GetFunction());
         exports->Set(Nan::New("resetAllStats").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ResetAllStats)->GetFunction());
