@@ -235,21 +235,22 @@ namespace greenworks
 			                                                     description_.c_str());
 																 
 		if (!tags_.empty()) {
-			SteamParamStringArray_t tags;
-			if (tags_.size() > 0) {
-				tags.m_nNumStrings = 0;
-				tags.m_ppStrings = nullptr;
-			}
-			else
-			{
-				for (std::vector<std::string>::size_type i = 0; i < tags_.size(); i++)
-				{
-					tags_cc[i] = tags_[i].c_str();
-				}
-			
-				tags.m_nNumStrings = tags_.size();
-				tags.m_ppStrings = tags_cc;
-			}
+            SteamParamStringArray_t tags;
+            if (tags_.empty())
+            {
+                tags.m_nNumStrings = 0;
+                tags.m_ppStrings = nullptr;
+            }
+            else
+            {
+                for (std::vector<std::string>::size_type i = 0; i < tags_.size(); i++)
+                {
+                    tags_cc[i] = tags_[i].c_str();
+                }
+
+                tags.m_nNumStrings = tags_.size();
+                tags.m_ppStrings = tags_cc;
+            }
 			
 			SteamRemoteStorage()->UpdatePublishedFileTags(update_handle, &tags);
 		}
