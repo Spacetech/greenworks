@@ -430,11 +430,27 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
+        
         std::string option(*(v8::String::Utf8Value(info[0])));
         SteamFriends()->ActivateGameOverlay(option.c_str());
         info.GetReturnValue().Set(Nan::Undefined());
     }
 
+    NAN_METHOD(ActivateGameOverlayInviteDialog)
+    {
+        Nan::HandleScope scope;
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+        
+        std::string steamIdString(*(v8::String::Utf8Value(info[0])));
+        CSteamID lobbyId(utils::strToUint64(steamIdString));
+        
+        SteamFriends()->ActivateGameOverlayInviteDialog(lobbyId);
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+    
     NAN_METHOD(ActivateGameOverlayToWebPage)
     {
         Nan::HandleScope scope;
@@ -442,6 +458,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
+        
         std::string option(*(v8::String::Utf8Value(info[0])));
         SteamFriends()->ActivateGameOverlayToWebPage(option.c_str());
         info.GetReturnValue().Set(Nan::Undefined());
@@ -911,7 +928,7 @@ namespace
 
         info.GetReturnValue().Set(friends);
     }
-
+    
     NAN_METHOD(CreateLobby)
     {
         Nan::HandleScope scope;
@@ -1333,6 +1350,7 @@ namespace
         exports->Set(Nan::New("getNumberOfPlayers").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetNumberOfPlayers)->GetFunction());
         exports->Set(Nan::New("isGameOverlayEnabled").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(IsGameOverlayEnabled)->GetFunction());
         exports->Set(Nan::New("activateGameOverlay").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateGameOverlay)->GetFunction());
+        exports->Set(Nan::New("activateGameOverlayInviteDialog").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateGameOverlayInviteDialog)->GetFunction());
         exports->Set(Nan::New("activateGameOverlayToWebPage").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateGameOverlayToWebPage)->GetFunction());
         exports->Set(Nan::New("onGameOverlayActive").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnGameOverlayActive)->GetFunction());
         exports->Set(Nan::New("onGameJoinRequested").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnGameJoinRequested)->GetFunction());
