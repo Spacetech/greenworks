@@ -155,7 +155,7 @@ namespace utils
 
 	bool WriteFile(const std::string& target_path, char* content, int length)
 	{
-		std::ofstream fout(target_path.c_str(), std::ios::binary);
+		std::ofstream fout(target_path.c_str(), std::ios::out|std::ios::binary);
 		fout.write(content, length);
 		return fout.good();
 	}
