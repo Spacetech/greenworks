@@ -2,7 +2,7 @@ Param (
     [Parameter(Mandatory = $True)][string]$version
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 $root = [System.IO.Path]::GetFullPath($PSScriptRoot)
 
