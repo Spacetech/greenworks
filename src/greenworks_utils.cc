@@ -21,7 +21,7 @@
 
 namespace utils
 {
-	void InitUgcMatchingTypes(v8::Handle<v8::Object> exports)
+	void InitUgcMatchingTypes(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_matching_type = Nan::New<v8::Object>();
 		ugc_matching_type->Set(Nan::New("Items").ToLocalChecked(), Nan::New(k_EUGCMatchingUGCType_Items));
@@ -54,7 +54,7 @@ namespace utils
 		exports->Set(Nan::New("UGCMatchingType").ToLocalChecked(), ugc_matching_type);
 	}
 
-	void InitUgcQueryTypes(v8::Handle<v8::Object> exports)
+	void InitUgcQueryTypes(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_query_type = Nan::New<v8::Object>();
 		ugc_query_type->Set(Nan::New("RankedByVote").ToLocalChecked(),
@@ -87,7 +87,7 @@ namespace utils
 		exports->Set(Nan::New("UGCQueryType").ToLocalChecked(), ugc_query_type);
 	}
 
-	void InitUserUgcList(v8::Handle<v8::Object> exports)
+	void InitUserUgcList(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_list = Nan::New<v8::Object>();
 		ugc_list->Set(Nan::New("Published").ToLocalChecked(), Nan::New(k_EUserUGCList_Published));
@@ -106,7 +106,7 @@ namespace utils
 		exports->Set(Nan::New("UserUGCList").ToLocalChecked(), ugc_list);
 	}
 
-	void InitUserUgcListSortOrder(v8::Handle<v8::Object> exports)
+	void InitUserUgcListSortOrder(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_list_sort_order = Nan::New<v8::Object>();
 		ugc_list_sort_order->Set(Nan::New("CreationOrderDesc").ToLocalChecked(),

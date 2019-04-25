@@ -14,13 +14,13 @@
 
 namespace utils
 {
-	void InitUgcQueryTypes(v8::Handle<v8::Object> exports);
+	void InitUgcQueryTypes(v8::Local<v8::Object> exports);
 
-	void InitUgcMatchingTypes(v8::Handle<v8::Object> exports);
+	void InitUgcMatchingTypes(v8::Local<v8::Object> exports);
 
-	void InitUserUgcListSortOrder(v8::Handle<v8::Object> exports);
+	void InitUserUgcListSortOrder(v8::Local<v8::Object> exports);
 
-	void InitUserUgcList(v8::Handle<v8::Object> exports);
+	void InitUserUgcList(v8::Local<v8::Object> exports);
 
 	void sleep(int milliseconds);
 

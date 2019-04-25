@@ -7,3 +7,4 @@ steam_appid.txt
 *.swp
 .vscode/.browse.VC.db-wal
 .vscode/.BROWSE.VC.DB-shm
+.vscode/ipch

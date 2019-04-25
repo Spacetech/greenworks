@@ -15,7 +15,7 @@
   ],
   "dependencies": {
     "archiver": "2.1.1",
-    "nan": "2.11.1",
+    "nan": "2.13.2",
     "unzip": "0.1.11"
   },
   "devDependencies": {

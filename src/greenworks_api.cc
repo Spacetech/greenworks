@@ -1303,7 +1303,7 @@ namespace
         info.GetReturnValue().Set(SteamUserStats()->ResetAllStats(reset_achievement));
     }
 
-    void InitUtilsObject(v8::Handle<v8::Object> exports)
+    void InitUtilsObject(v8::Local<v8::Object> exports)
     {
         // Prepare constructor template
         v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>();
@@ -1317,7 +1317,7 @@ namespace
         exports->Set(Nan::New("Utils").ToLocalChecked(), tpl->GetFunction());
     }
 
-    void init(v8::Handle<v8::Object> exports)
+    void init(v8::Local<v8::Object> exports)
     {
         // Common APIs.
         exports->Set(Nan::New("initAPI").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(InitAPI)->GetFunction());
