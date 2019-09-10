@@ -15,6 +15,9 @@
 #include "greenworks_workshop_workers.h"
 #include "steam_callbacks.h"
 
+#define SET_FUNCTION(function_name, function) \
+    Nan::Set(exports, Nan::New(function_name).ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(function)).ToLocalChecked())
+
 greenworks::SteamCallbacks* steamCallbacks = nullptr;
 
 namespace
@@ -84,7 +87,7 @@ namespace
         {
             ISteamUserStats* steam_user_stats = SteamUserStats();
             steam_user_stats->RequestCurrentStats();
-            steam_user_stats->RequestGlobalStats(1); 
+            steam_user_stats->RequestGlobalStats(1);
 
             if (steamCallbacks == nullptr)
             {
@@ -187,9 +190,9 @@ namespace
         std::vector<std::string> files_path;
         for (uint32_t i = 0; i < files->Length(); ++i)
         {
-            if (!files->Get(i)->IsString())
+            if (!Nan::Get(files, i).ToLocalChecked()->IsString())
                 THROW_BAD_ARGS("Bad arguments");
-            v8::String::Utf8Value string_array(files->Get(i));
+            v8::String::Utf8Value string_array(Nan::Get(files, i).ToLocalChecked());
             // Ignore empty path.
             if (string_array.length() > 0)
                 files_path.push_back(*string_array);
@@ -430,7 +433,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        
+
         std::string option(*(v8::String::Utf8Value(info[0])));
         SteamFriends()->ActivateGameOverlay(option.c_str());
         info.GetReturnValue().Set(Nan::Undefined());
@@ -443,14 +446,14 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        
+
         std::string steamIdString(*(v8::String::Utf8Value(info[0])));
         CSteamID lobbyId(utils::strToUint64(steamIdString));
-        
+
         SteamFriends()->ActivateGameOverlayInviteDialog(lobbyId);
         info.GetReturnValue().Set(Nan::Undefined());
     }
-    
+
     NAN_METHOD(ActivateGameOverlayToWebPage)
     {
         Nan::HandleScope scope;
@@ -458,7 +461,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        
+
         std::string option(*(v8::String::Utf8Value(info[0])));
         SteamFriends()->ActivateGameOverlayToWebPage(option.c_str());
         info.GetReturnValue().Set(Nan::Undefined());
@@ -589,12 +592,12 @@ namespace
         std::vector<std::string> tags;
         for (uint32_t i = 0; i < tagsArray->Length(); ++i)
         {
-            if (!tagsArray->Get(i)->IsString())
+            if (!Nan::Get(tagsArray, i).ToLocalChecked()->IsString())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            v8::String::Utf8Value string_array(tagsArray->Get(i));
+            v8::String::Utf8Value string_array(Nan::Get(tagsArray, i).ToLocalChecked());
             if (string_array.length() > 0)
             {
                 tags.push_back(*string_array);
@@ -635,12 +638,12 @@ namespace
         std::vector<std::string> tags;
         for (uint32_t i = 0; i < tagsArray->Length(); ++i)
         {
-            if (!tagsArray->Get(i)->IsString())
+            if (!Nan::Get(tagsArray, i).ToLocalChecked()->IsString())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            v8::String::Utf8Value string_array(tagsArray->Get(i));
+            v8::String::Utf8Value string_array(Nan::Get(tagsArray, i).ToLocalChecked());
             if (string_array.length() > 0)
             {
                 tags.push_back(*string_array);
@@ -819,12 +822,12 @@ namespace
 
         for (uint32_t i = 0; i < length; ++i)
         {
-            if (!array->Get(i)->IsNumber())
+            if (!Nan::Get(array, i).ToLocalChecked()->IsNumber())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            published_file_id[i] = utils::strToUint64(*(v8::String::Utf8Value(array->Get(i))));
+            published_file_id[i] = utils::strToUint64(*(v8::String::Utf8Value(Nan::Get(array, i).ToLocalChecked())));
         }
 
         SteamUGC()->StartPlaytimeTracking(published_file_id, length);
@@ -928,7 +931,7 @@ namespace
 
         info.GetReturnValue().Set(friends);
     }
-    
+
     NAN_METHOD(CreateLobby)
     {
         Nan::HandleScope scope;
@@ -1249,7 +1252,7 @@ namespace
         }
         info.GetReturnValue().Set(Nan::Undefined());
     }
-    
+
     NAN_METHOD(SetStat)
     {
         Nan::HandleScope scope;
@@ -1312,91 +1315,90 @@ namespace
         Nan::SetMethod(tpl, "extractArchive", ExtractArchive);
 
         Nan::Persistent<v8::Function> constructor;
-        constructor.Reset(tpl->GetFunction());
-
-        exports->Set(Nan::New("Utils").ToLocalChecked(), tpl->GetFunction());
+        constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
+        Nan::Set(exports, Nan::New("Utils").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
     }
 
     void init(v8::Local<v8::Object> exports)
     {
         // Common APIs.
-        exports->Set(Nan::New("initAPI").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(InitAPI)->GetFunction());
-        exports->Set(Nan::New("getSteamId").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetSteamId)->GetFunction());
-        exports->Set(Nan::New("runCallbacks").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(RunCallbacks)->GetFunction());
+        SET_FUNCTION("initAPI", InitAPI);
+        SET_FUNCTION("getSteamId", GetSteamId);
+        SET_FUNCTION("runCallbacks", RunCallbacks);
 
         // File APIs.
-        exports->Set(Nan::New("saveTextToFile").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SaveTextToFile)->GetFunction());
-        exports->Set(Nan::New("readTextFromFile").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ReadTextFromFile)->GetFunction());
-        exports->Set(Nan::New("saveFilesToCloud").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SaveFilesToCloud)->GetFunction());
+        SET_FUNCTION("saveTextToFile", SaveTextToFile);
+        SET_FUNCTION("readTextFromFile", ReadTextFromFile);
+        SET_FUNCTION("saveFilesToCloud", SaveFilesToCloud);
 
         // Cloud APIs.
-        exports->Set(Nan::New("isCloudEnabled").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(IsCloudEnabled)->GetFunction());
-        exports->Set(Nan::New("isCloudEnabledForUser").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(IsCloudEnabledForUser)->GetFunction());
-        exports->Set(Nan::New("enableCloud").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(EnableCloud)->GetFunction());
-        exports->Set(Nan::New("getCloudQuota").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetCloudQuota)->GetFunction());
+        SET_FUNCTION("isCloudEnabled", IsCloudEnabled);
+        SET_FUNCTION("isCloudEnabledForUser", IsCloudEnabledForUser);
+        SET_FUNCTION("enableCloud", EnableCloud);
+        SET_FUNCTION("getCloudQuota", GetCloudQuota);
 
         // Achievement APIs.
-        exports->Set(Nan::New("activateAchievement").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateAchievement)->GetFunction());
-        exports->Set(Nan::New("clearAchievement").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ClearAchievement)->GetFunction());
-        exports->Set(Nan::New("getAchievement").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetAchievement)->GetFunction());
-        exports->Set(Nan::New("getAchievementNames").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetAchievementNames)->GetFunction());
-        exports->Set(Nan::New("getNumberOfAchievements").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetNumberOfAchievements)->GetFunction());
+        SET_FUNCTION("activateAchievement", ActivateAchievement);
+        SET_FUNCTION("clearAchievement", ClearAchievement);
+        SET_FUNCTION("getAchievement", GetAchievement);
+        SET_FUNCTION("getAchievementNames", GetAchievementNames);
+        SET_FUNCTION("getNumberOfAchievements", GetNumberOfAchievements);
 
         // Game APIs.
-        exports->Set(Nan::New("getCurrentBetaName").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetCurrentBetaName)->GetFunction());
-        exports->Set(Nan::New("getCurrentGameLanguage").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetCurrentGameLanguage)->GetFunction());
-        exports->Set(Nan::New("getCurrentUILanguage").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetCurrentUILanguage)->GetFunction());
-        exports->Set(Nan::New("getCurrentGameInstallDir").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetCurrentGameInstallDir)->GetFunction());
-        exports->Set(Nan::New("getNumberOfPlayers").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetNumberOfPlayers)->GetFunction());
-        exports->Set(Nan::New("isGameOverlayEnabled").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(IsGameOverlayEnabled)->GetFunction());
-        exports->Set(Nan::New("activateGameOverlay").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateGameOverlay)->GetFunction());
-        exports->Set(Nan::New("activateGameOverlayInviteDialog").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateGameOverlayInviteDialog)->GetFunction());
-        exports->Set(Nan::New("activateGameOverlayToWebPage").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ActivateGameOverlayToWebPage)->GetFunction());
-        exports->Set(Nan::New("onGameOverlayActive").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnGameOverlayActive)->GetFunction());
-        exports->Set(Nan::New("onGameJoinRequested").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnGameJoinRequested)->GetFunction());
+        SET_FUNCTION("getCurrentBetaName", GetCurrentBetaName);
+        SET_FUNCTION("getCurrentGameLanguage", GetCurrentGameLanguage);
+        SET_FUNCTION("getCurrentUILanguage", GetCurrentUILanguage);
+        SET_FUNCTION("getCurrentGameInstallDir", GetCurrentGameInstallDir);
+        SET_FUNCTION("getNumberOfPlayers", GetNumberOfPlayers);
+        SET_FUNCTION("isGameOverlayEnabled", IsGameOverlayEnabled);
+        SET_FUNCTION("activateGameOverlay", ActivateGameOverlay);
+        SET_FUNCTION("activateGameOverlayInviteDialog", ActivateGameOverlayInviteDialog);
+        SET_FUNCTION("activateGameOverlayToWebPage", ActivateGameOverlayToWebPage);
+        SET_FUNCTION("onGameOverlayActive", OnGameOverlayActive);
+        SET_FUNCTION("onGameJoinRequested", OnGameJoinRequested);
 
         // Workshop APIs
-        exports->Set(Nan::New("fileShare").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(FileShare)->GetFunction());
-        exports->Set(Nan::New("publishWorkshopFile").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(PublishWorkshopFile)->GetFunction());
-        exports->Set(Nan::New("updatePublishedWorkshopFile").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UpdatePublishedWorkshopFile)->GetFunction());
-        exports->Set(Nan::New("ugcGetItems").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCGetItems)->GetFunction());
-        exports->Set(Nan::New("ugcGetUserItems").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCGetUserItems)->GetFunction());
-        exports->Set(Nan::New("ugcDownloadItem").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCDownloadItem)->GetFunction());
-        exports->Set(Nan::New("ugcSynchronizeItems").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCSynchronizeItems)->GetFunction());
-        exports->Set(Nan::New("ugcShowOverlay").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCShowOverlay)->GetFunction());
-        exports->Set(Nan::New("ugcUnsubscribe").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCUnsubscribe)->GetFunction());
+        SET_FUNCTION("fileShare", FileShare);
+        SET_FUNCTION("publishWorkshopFile", PublishWorkshopFile);
+        SET_FUNCTION("updatePublishedWorkshopFile", UpdatePublishedWorkshopFile);
+        SET_FUNCTION("ugcGetItems", UGCGetItems);
+        SET_FUNCTION("ugcGetUserItems", UGCGetUserItems);
+        SET_FUNCTION("ugcDownloadItem", UGCDownloadItem);
+        SET_FUNCTION("ugcSynchronizeItems", UGCSynchronizeItems);
+        SET_FUNCTION("ugcShowOverlay", UGCShowOverlay);
+        SET_FUNCTION("ugcUnsubscribe", UGCUnsubscribe);
 
-        exports->Set(Nan::New("startPlaytimeTracking").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCStartPlaytimeTracking)->GetFunction());
-        exports->Set(Nan::New("stopPlaytimeTracking").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(UGCStopPlaytimeTracking)->GetFunction());
+        SET_FUNCTION("startPlaytimeTracking", UGCStartPlaytimeTracking);
+        SET_FUNCTION("stopPlaytimeTracking", UGCStopPlaytimeTracking);
 
         // Presence apis
-        exports->Set(Nan::New("setRichPresence").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SetRichPresence)->GetFunction());
-        exports->Set(Nan::New("clearRichPresence").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ClearRichPresence)->GetFunction());
+        SET_FUNCTION("setRichPresence", SetRichPresence);
+        SET_FUNCTION("clearRichPresence", ClearRichPresence);
 
         // Friend apis
-        exports->Set(Nan::New("getFriends").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetFriends)->GetFunction());
+        SET_FUNCTION("getFriends", GetFriends);
 
         // Stat apis
-        exports->Set(Nan::New("getStatInt").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetStatInt)->GetFunction());
-        exports->Set(Nan::New("getStatFloat").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetStatFloat)->GetFunction());
-        exports->Set(Nan::New("getGlobalStatInt").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetGlobalStatInt)->GetFunction());
-        exports->Set(Nan::New("getGlobalStatFloat").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetGlobalStatFloat)->GetFunction());
-        exports->Set(Nan::New("setStat").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SetStat)->GetFunction());
-        exports->Set(Nan::New("storeStats").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(StoreStats)->GetFunction());
-        exports->Set(Nan::New("resetAllStats").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(ResetAllStats)->GetFunction());
+        SET_FUNCTION("getStatInt", GetStatInt);
+        SET_FUNCTION("getStatFloat", GetStatFloat);
+        SET_FUNCTION("getGlobalStatInt", GetGlobalStatInt);
+        SET_FUNCTION("getGlobalStatFloat", GetGlobalStatFloat);
+        SET_FUNCTION("setStat", SetStat);
+        SET_FUNCTION("storeStats", StoreStats);
+        SET_FUNCTION("resetAllStats", ResetAllStats);
 
         // Lobby api
-        exports->Set(Nan::New("createLobby").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(CreateLobby)->GetFunction());
-        exports->Set(Nan::New("leaveLobby").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(LeaveLobby)->GetFunction());
-        exports->Set(Nan::New("joinLobby").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(JoinLobby)->GetFunction());
-        exports->Set(Nan::New("setLobbyType").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SetLobbyType)->GetFunction());
-        exports->Set(Nan::New("getLobbyData").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetLobbyData)->GetFunction());
-        exports->Set(Nan::New("setLobbyData").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(SetLobbyData)->GetFunction());
-        exports->Set(Nan::New("getLobbyMembers").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(GetLobbyMembers)->GetFunction());
-        exports->Set(Nan::New("onLobbyCreated").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnLobbyCreated)->GetFunction());
-        exports->Set(Nan::New("onLobbyEntered").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnLobbyEntered)->GetFunction());
-        exports->Set(Nan::New("onLobbyChatUpdate").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnLobbyChatUpdate)->GetFunction());
-        exports->Set(Nan::New("onLobbyJoinRequested").ToLocalChecked(), Nan::New<v8::FunctionTemplate>(OnLobbyJoinRequested)->GetFunction());
+        SET_FUNCTION("createLobby", CreateLobby);
+        SET_FUNCTION("leaveLobby", LeaveLobby);
+        SET_FUNCTION("joinLobby", JoinLobby);
+        SET_FUNCTION("setLobbyType", SetLobbyType);
+        SET_FUNCTION("getLobbyData", GetLobbyData);
+        SET_FUNCTION("setLobbyData", SetLobbyData);
+        SET_FUNCTION("getLobbyMembers", GetLobbyMembers);
+        SET_FUNCTION("onLobbyCreated", OnLobbyCreated);
+        SET_FUNCTION("onLobbyEntered", OnLobbyEntered);
+        SET_FUNCTION("onLobbyChatUpdate", OnLobbyChatUpdate);
+        SET_FUNCTION("onLobbyJoinRequested", OnLobbyJoinRequested);
 
         utils::InitUgcMatchingTypes(exports);
         utils::InitUgcQueryTypes(exports);
