@@ -24,110 +24,110 @@ namespace utils
 	void InitUgcMatchingTypes(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_matching_type = Nan::New<v8::Object>();
-		ugc_matching_type->Set(Nan::New("Items").ToLocalChecked(), Nan::New(k_EUGCMatchingUGCType_Items));
-		ugc_matching_type->Set(Nan::New("ItemsMtx").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("Items").ToLocalChecked(), Nan::New(k_EUGCMatchingUGCType_Items));
+		Nan::Set(ugc_matching_type, Nan::New("ItemsMtx").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_Items_Mtx));
-		ugc_matching_type->Set(Nan::New("ItemsReadyToUse").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("ItemsReadyToUse").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_Items_ReadyToUse));
-		ugc_matching_type->Set(Nan::New("Collections").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("Collections").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_Collections));
-		ugc_matching_type->Set(Nan::New("Artwork").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("Artwork").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_Artwork));
-		ugc_matching_type->Set(Nan::New("Videos").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("Videos").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_Videos));
-		ugc_matching_type->Set(Nan::New("Screenshots").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("Screenshots").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_Screenshots));
-		ugc_matching_type->Set(Nan::New("AllGuides").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("AllGuides").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_AllGuides));
-		ugc_matching_type->Set(Nan::New("WebGuides").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("WebGuides").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_WebGuides));
-		ugc_matching_type->Set(Nan::New("IntegratedGuides").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("IntegratedGuides").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_IntegratedGuides));
-		ugc_matching_type->Set(Nan::New("UsableInGame").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("UsableInGame").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_UsableInGame));
-		ugc_matching_type->Set(Nan::New("ControllerBindings").ToLocalChecked(),
+		Nan::Set(ugc_matching_type, Nan::New("ControllerBindings").ToLocalChecked(),
 		                       Nan::New(k_EUGCMatchingUGCType_ControllerBindings));
 
 		Nan::Persistent<v8::Object> constructor;
 		constructor.Reset(ugc_matching_type);
 
-		exports->Set(Nan::New("UGCMatchingType").ToLocalChecked(), ugc_matching_type);
+		Nan::Set(exports, Nan::New("UGCMatchingType").ToLocalChecked(), ugc_matching_type);
 	}
 
 	void InitUgcQueryTypes(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_query_type = Nan::New<v8::Object>();
-		ugc_query_type->Set(Nan::New("RankedByVote").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("RankedByVote").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByVote));
-		ugc_query_type->Set(Nan::New("RankedByPublicationDate").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("RankedByPublicationDate").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByPublicationDate));
-		ugc_query_type->Set(Nan::New("AcceptedForGameRankedByAcceptanceDate").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("AcceptedForGameRankedByAcceptanceDate").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_AcceptedForGameRankedByAcceptanceDate));
-		ugc_query_type->Set(Nan::New("RankedByTrend").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("RankedByTrend").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByTrend));
-		ugc_query_type->Set(Nan::New("FavoritedByFriendsRankedByPublicationDate").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("FavoritedByFriendsRankedByPublicationDate").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_FavoritedByFriendsRankedByPublicationDate));
-		ugc_query_type->Set(Nan::New("CreatedByFriendsRankedByPublicationDate").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("CreatedByFriendsRankedByPublicationDate").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_CreatedByFriendsRankedByPublicationDate));
-		ugc_query_type->Set(Nan::New("RankedByNumTimesReported").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("RankedByNumTimesReported").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByNumTimesReported));
-		ugc_query_type->Set(Nan::New("CreatedByFollowedUsersRankedByPublicationDate").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("CreatedByFollowedUsersRankedByPublicationDate").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_CreatedByFollowedUsersRankedByPublicationDate));
-		ugc_query_type->Set(Nan::New("NotYetRated").ToLocalChecked(), Nan::New(k_EUGCQuery_NotYetRated));
-		ugc_query_type->Set(Nan::New("RankedByTotalVotesAsc").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("NotYetRated").ToLocalChecked(), Nan::New(k_EUGCQuery_NotYetRated));
+		Nan::Set(ugc_query_type, Nan::New("RankedByTotalVotesAsc").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByTotalVotesAsc));
-		ugc_query_type->Set(Nan::New("RankedByVotesUp").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("RankedByVotesUp").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByVotesUp));
-		ugc_query_type->Set(Nan::New("RankedByTextSearch").ToLocalChecked(),
+		Nan::Set(ugc_query_type, Nan::New("RankedByTextSearch").ToLocalChecked(),
 		                    Nan::New(k_EUGCQuery_RankedByTextSearch));
 
 		Nan::Persistent<v8::Object> constructor;
 		constructor.Reset(ugc_query_type);
 
-		exports->Set(Nan::New("UGCQueryType").ToLocalChecked(), ugc_query_type);
+		Nan::Set(exports, Nan::New("UGCQueryType").ToLocalChecked(), ugc_query_type);
 	}
 
 	void InitUserUgcList(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_list = Nan::New<v8::Object>();
-		ugc_list->Set(Nan::New("Published").ToLocalChecked(), Nan::New(k_EUserUGCList_Published));
-		ugc_list->Set(Nan::New("VotedOn").ToLocalChecked(), Nan::New(k_EUserUGCList_VotedOn));
-		ugc_list->Set(Nan::New("VotedUp").ToLocalChecked(), Nan::New(k_EUserUGCList_VotedUp));
-		ugc_list->Set(Nan::New("VotedDown").ToLocalChecked(), Nan::New(k_EUserUGCList_VotedDown));
-		ugc_list->Set(Nan::New("WillVoteLater").ToLocalChecked(), Nan::New(k_EUserUGCList_WillVoteLater));
-		ugc_list->Set(Nan::New("Favorited").ToLocalChecked(), Nan::New(k_EUserUGCList_Favorited));
-		ugc_list->Set(Nan::New("Subscribed").ToLocalChecked(), Nan::New(k_EUserUGCList_Subscribed));
-		ugc_list->Set(Nan::New("UsedOrPlayer").ToLocalChecked(), Nan::New(k_EUserUGCList_UsedOrPlayed));
-		ugc_list->Set(Nan::New("Followed").ToLocalChecked(), Nan::New(k_EUserUGCList_Followed));
+		Nan::Set(ugc_list, Nan::New("Published").ToLocalChecked(), Nan::New(k_EUserUGCList_Published));
+		Nan::Set(ugc_list, Nan::New("VotedOn").ToLocalChecked(), Nan::New(k_EUserUGCList_VotedOn));
+		Nan::Set(ugc_list, Nan::New("VotedUp").ToLocalChecked(), Nan::New(k_EUserUGCList_VotedUp));
+		Nan::Set(ugc_list, Nan::New("VotedDown").ToLocalChecked(), Nan::New(k_EUserUGCList_VotedDown));
+		Nan::Set(ugc_list, Nan::New("WillVoteLater").ToLocalChecked(), Nan::New(k_EUserUGCList_WillVoteLater));
+		Nan::Set(ugc_list, Nan::New("Favorited").ToLocalChecked(), Nan::New(k_EUserUGCList_Favorited));
+		Nan::Set(ugc_list, Nan::New("Subscribed").ToLocalChecked(), Nan::New(k_EUserUGCList_Subscribed));
+		Nan::Set(ugc_list, Nan::New("UsedOrPlayer").ToLocalChecked(), Nan::New(k_EUserUGCList_UsedOrPlayed));
+		Nan::Set(ugc_list, Nan::New("Followed").ToLocalChecked(), Nan::New(k_EUserUGCList_Followed));
 
 		Nan::Persistent<v8::Object> constructor;
 		constructor.Reset(ugc_list);
 
-		exports->Set(Nan::New("UserUGCList").ToLocalChecked(), ugc_list);
+		Nan::Set(exports, Nan::New("UserUGCList").ToLocalChecked(), ugc_list);
 	}
 
 	void InitUserUgcListSortOrder(v8::Local<v8::Object> exports)
 	{
 		v8::Local<v8::Object> ugc_list_sort_order = Nan::New<v8::Object>();
-		ugc_list_sort_order->Set(Nan::New("CreationOrderDesc").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("CreationOrderDesc").ToLocalChecked(),
 		                         Nan::New(static_cast<int>(k_EUserUGCListSortOrder_CreationOrderDesc)));
-		ugc_list_sort_order->Set(Nan::New("CreationOrderAsc").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("CreationOrderAsc").ToLocalChecked(),
 		                         Nan::New(k_EUserUGCListSortOrder_CreationOrderDesc));
-		ugc_list_sort_order->Set(Nan::New("TitleAsc").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("TitleAsc").ToLocalChecked(),
 		                         Nan::New(k_EUserUGCListSortOrder_TitleAsc));
-		ugc_list_sort_order->Set(Nan::New("LastUpdatedDesc").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("LastUpdatedDesc").ToLocalChecked(),
 		                         Nan::New(k_EUserUGCListSortOrder_LastUpdatedDesc));
-		ugc_list_sort_order->Set(Nan::New("SubscriptionDateDesc").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("SubscriptionDateDesc").ToLocalChecked(),
 		                         Nan::New(k_EUserUGCListSortOrder_SubscriptionDateDesc));
-		ugc_list_sort_order->Set(Nan::New("VoteScoreDesc").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("VoteScoreDesc").ToLocalChecked(),
 		                         Nan::New(k_EUserUGCListSortOrder_VoteScoreDesc));
-		ugc_list_sort_order->Set(Nan::New("ForModeration").ToLocalChecked(),
+		Nan::Set(ugc_list_sort_order, Nan::New("ForModeration").ToLocalChecked(),
 		                         Nan::New(k_EUserUGCListSortOrder_ForModeration));
 
 		Nan::Persistent<v8::Object> constructor;
 		constructor.Reset(ugc_list_sort_order);
 
-		exports->Set(Nan::New("UserUGCListSortOrder").ToLocalChecked(), ugc_list_sort_order);
+		Nan::Set(exports, Nan::New("UserUGCListSortOrder").ToLocalChecked(), ugc_list_sort_order);
 	}
 
 	void sleep(int milliseconds)

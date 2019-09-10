@@ -72,8 +72,8 @@ namespace
             name = "k_EAccountTypePending";
             break;
         }
-        account_type->Set(Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
-        account_type->Set(Nan::New("value").ToLocalChecked(), Nan::New(type_id));
+        Nan::Set(account_type, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
+        Nan::Set(account_type, Nan::New("value").ToLocalChecked(), Nan::New(type_id));
         return account_type;
     }
 
@@ -104,42 +104,41 @@ namespace
         Nan::HandleScope scope;
         CSteamID user_id = SteamUser()->GetSteamID();
         v8::Local<v8::Object> flags = Nan::New<v8::Object>();
-        flags->Set(Nan::New("anonymous").ToLocalChecked(), Nan::New(user_id.BAnonAccount()));
-        flags->Set(Nan::New("anonymousGameServer").ToLocalChecked(),
-                   Nan::New(user_id.BAnonGameServerAccount()));
-        flags->Set(Nan::New("anonymousGameServerLogin").ToLocalChecked(),
-                   Nan::New(user_id.BBlankAnonAccount()));
-        flags->Set(Nan::New("anonymousUser").ToLocalChecked(), Nan::New(user_id.BAnonUserAccount()));
-        flags->Set(Nan::New("chat").ToLocalChecked(), Nan::New(user_id.BChatAccount()));
-        flags->Set(Nan::New("clan").ToLocalChecked(), Nan::New(user_id.BClanAccount()));
-        flags->Set(Nan::New("consoleUser").ToLocalChecked(), Nan::New(user_id.BConsoleUserAccount()));
-        flags->Set(Nan::New("contentServer").ToLocalChecked(), Nan::New(user_id.BContentServerAccount()));
-        flags->Set(Nan::New("gameServer").ToLocalChecked(), Nan::New(user_id.BGameServerAccount()));
-        flags->Set(Nan::New("individual").ToLocalChecked(), Nan::New(user_id.BIndividualAccount()));
-        flags->Set(Nan::New("gameServerPersistent").ToLocalChecked(),
-                   Nan::New(user_id.BPersistentGameServerAccount()));
-        flags->Set(Nan::New("lobby").ToLocalChecked(), Nan::New(user_id.IsLobby()));
+        Nan::Set(flags, Nan::New("anonymous").ToLocalChecked(), Nan::New(user_id.BAnonAccount()));
+        Nan::Set(flags, Nan::New("anonymousGameServer").ToLocalChecked(),
+                 Nan::New(user_id.BAnonGameServerAccount()));
+        Nan::Set(flags, Nan::New("anonymousGameServerLogin").ToLocalChecked(),
+                 Nan::New(user_id.BBlankAnonAccount()));
+        Nan::Set(flags, Nan::New("anonymousUser").ToLocalChecked(), Nan::New(user_id.BAnonUserAccount()));
+        Nan::Set(flags, Nan::New("chat").ToLocalChecked(), Nan::New(user_id.BChatAccount()));
+        Nan::Set(flags, Nan::New("clan").ToLocalChecked(), Nan::New(user_id.BClanAccount()));
+        Nan::Set(flags, Nan::New("consoleUser").ToLocalChecked(), Nan::New(user_id.BConsoleUserAccount()));
+        Nan::Set(flags, Nan::New("contentServer").ToLocalChecked(), Nan::New(user_id.BContentServerAccount()));
+        Nan::Set(flags, Nan::New("gameServer").ToLocalChecked(), Nan::New(user_id.BGameServerAccount()));
+        Nan::Set(flags, Nan::New("individual").ToLocalChecked(), Nan::New(user_id.BIndividualAccount()));
+        Nan::Set(flags, Nan::New("gameServerPersistent").ToLocalChecked(),
+                 Nan::New(user_id.BPersistentGameServerAccount()));
+        Nan::Set(flags, Nan::New("lobby").ToLocalChecked(), Nan::New(user_id.IsLobby()));
 
         v8::Local<v8::Object> result = Nan::New<v8::Object>();
-        result->Set(Nan::New("flags").ToLocalChecked(), flags);
-        result->Set(Nan::New("type").ToLocalChecked(), GetSteamUserCountType(user_id.GetEAccountType()));
-        result->Set(Nan::New("accountId").ToLocalChecked(), Nan::New<v8::Integer>(user_id.GetAccountID()));
-        result->Set(Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(user_id.GetStaticAccountKey())).ToLocalChecked());
-        result->Set(Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(user_id.ConvertToUint64())).ToLocalChecked());
-        result->Set(Nan::New("isValid").ToLocalChecked(), Nan::New<v8::Integer>(user_id.IsValid()));
-        result->Set(Nan::New("level").ToLocalChecked(), Nan::New<v8::Integer>(
-                                                            SteamUser()->GetPlayerSteamLevel()));
+        Nan::Set(result, Nan::New("flags").ToLocalChecked(), flags);
+        Nan::Set(result, Nan::New("type").ToLocalChecked(), GetSteamUserCountType(user_id.GetEAccountType()));
+        Nan::Set(result, Nan::New("accountId").ToLocalChecked(), Nan::New<v8::Integer>(user_id.GetAccountID()));
+        Nan::Set(result, Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(user_id.GetStaticAccountKey())).ToLocalChecked());
+        Nan::Set(result, Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(user_id.ConvertToUint64())).ToLocalChecked());
+        Nan::Set(result, Nan::New("isValid").ToLocalChecked(), Nan::New<v8::Integer>(user_id.IsValid()));
+        Nan::Set(result, Nan::New("level").ToLocalChecked(), Nan::New<v8::Integer>(SteamUser()->GetPlayerSteamLevel()));
 
         if (!SteamFriends()->RequestUserInformation(user_id, true))
         {
-            result->Set(Nan::New("screenName").ToLocalChecked(),
-                        Nan::New(SteamFriends()->GetFriendPersonaName(user_id)).ToLocalChecked());
+            Nan::Set(result, Nan::New("screenName").ToLocalChecked(),
+                     Nan::New(SteamFriends()->GetFriendPersonaName(user_id)).ToLocalChecked());
         }
         else
         {
             std::ostringstream sout;
             sout << user_id.GetAccountID();
-            result->Set(Nan::New("screenName").ToLocalChecked(), Nan::New<v8::String>(sout.str()).ToLocalChecked());
+            Nan::Set(result, Nan::New("screenName").ToLocalChecked(), Nan::New<v8::String>(sout.str()).ToLocalChecked());
         }
 
         info.GetReturnValue().Set(result);
@@ -164,8 +163,8 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string file_name(*(v8::String::Utf8Value(info[0])));
-        std::string content(*(v8::String::Utf8Value(info[1])));
+        std::string file_name(*(Nan::Utf8String(info[0])));
+        std::string content(*(Nan::Utf8String(info[1])));
         Nan::Callback* success_callback = new Nan::Callback(info[2].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -218,7 +217,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string file_name(*(v8::String::Utf8Value(info[0])));
+        std::string file_name(*(Nan::Utf8String(info[0])));
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -287,7 +286,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string achievement = (*(v8::String::Utf8Value(info[0])));
+        std::string achievement = (*(Nan::Utf8String(info[0])));
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -307,7 +306,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string achievement = (*(v8::String::Utf8Value(info[0])));
+        std::string achievement = (*(Nan::Utf8String(info[0])));
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -325,7 +324,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string achievement = (*(v8::String::Utf8Value(info[0])));
+        std::string achievement = (*(Nan::Utf8String(info[0])));
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -344,7 +343,7 @@ namespace
         v8::Local<v8::Array> names = Nan::New<v8::Array>(count);
         for (int i = 0; i < count; ++i)
         {
-            names->Set(i, Nan::New(SteamUserStats()->GetAchievementName(i)).ToLocalChecked());
+            Nan::Set(names, i, Nan::New(SteamUserStats()->GetAchievementName(i)).ToLocalChecked());
         }
         info.GetReturnValue().Set(names);
     }
@@ -434,7 +433,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string option(*(v8::String::Utf8Value(info[0])));
+        std::string option(*(Nan::Utf8String(info[0])));
         SteamFriends()->ActivateGameOverlay(option.c_str());
         info.GetReturnValue().Set(Nan::Undefined());
     }
@@ -447,7 +446,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string steamIdString(*(v8::String::Utf8Value(info[0])));
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
         CSteamID lobbyId(utils::strToUint64(steamIdString));
 
         SteamFriends()->ActivateGameOverlayInviteDialog(lobbyId);
@@ -462,7 +461,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string option(*(v8::String::Utf8Value(info[0])));
+        std::string option(*(Nan::Utf8String(info[0])));
         SteamFriends()->ActivateGameOverlayToWebPage(option.c_str());
         info.GetReturnValue().Set(Nan::Undefined());
     }
@@ -526,8 +525,8 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string key(*(v8::String::Utf8Value(info[0])));
-        std::string value(*(v8::String::Utf8Value(info[1])));
+        std::string key(*(Nan::Utf8String(info[0])));
+        std::string value(*(Nan::Utf8String(info[1])));
 
         if (key.length() > k_cchMaxRichPresenceKeyLength)
         {
@@ -561,7 +560,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string file_name(*(v8::String::Utf8Value(info[0])));
+        std::string file_name(*(Nan::Utf8String(info[0])));
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -583,10 +582,10 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string file_name(*(v8::String::Utf8Value(info[0])));
-        std::string image_name(*(v8::String::Utf8Value(info[1])));
-        std::string title(*(v8::String::Utf8Value(info[2])));
-        std::string description(*(v8::String::Utf8Value(info[3])));
+        std::string file_name(*(Nan::Utf8String(info[0])));
+        std::string image_name(*(Nan::Utf8String(info[1])));
+        std::string title(*(Nan::Utf8String(info[2])));
+        std::string description(*(Nan::Utf8String(info[3])));
 
         v8::Local<v8::Array> tagsArray = info[4].As<v8::Array>();
         std::vector<std::string> tags;
@@ -628,11 +627,11 @@ namespace
         }
 
         PublishedFileId_t published_file_id = utils::strToUint64(
-            *(v8::String::Utf8Value(info[0])));
-        std::string file_name(*(v8::String::Utf8Value(info[1])));
-        std::string image_name(*(v8::String::Utf8Value(info[2])));
-        std::string title(*(v8::String::Utf8Value(info[3])));
-        std::string description(*(v8::String::Utf8Value(info[4])));
+            *(Nan::Utf8String(info[0])));
+        std::string file_name(*(Nan::Utf8String(info[1])));
+        std::string image_name(*(Nan::Utf8String(info[2])));
+        std::string title(*(Nan::Utf8String(info[3])));
+        std::string description(*(Nan::Utf8String(info[4])));
 
         v8::Local<v8::Array> tagsArray = info[5].As<v8::Array>();
         std::vector<std::string> tags;
@@ -671,9 +670,8 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(
-            info[0]->Int32Value());
-        EUGCQuery ugc_query_type = static_cast<EUGCQuery>(info[1]->Int32Value());
+        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(Nan::To<int32_t>(info[0]).FromJust());
+        EUGCQuery ugc_query_type = static_cast<EUGCQuery>(Nan::To<int32_t>(info[1]).FromJust());
 
         Nan::Callback* success_callback = new Nan::Callback(info[2].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
@@ -695,11 +693,9 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(
-            info[0]->Int32Value());
-        EUserUGCListSortOrder ugc_list_order = static_cast<EUserUGCListSortOrder>(
-            info[1]->Int32Value());
-        EUserUGCList ugc_list = static_cast<EUserUGCList>(info[2]->Int32Value());
+        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(Nan::To<int32_t>(info[0]).FromJust());
+        EUserUGCListSortOrder ugc_list_order = static_cast<EUserUGCListSortOrder>(Nan::To<int32_t>(info[1]).FromJust());
+        EUserUGCList ugc_list = static_cast<EUserUGCList>(Nan::To<int32_t>(info[2]).FromJust());
 
         Nan::Callback* success_callback = new Nan::Callback(info[3].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
@@ -722,8 +718,8 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
         UGCHandle_t download_file_handle = utils::strToUint64(
-            *(v8::String::Utf8Value(info[0])));
-        std::string download_dir = *(v8::String::Utf8Value(info[1]));
+            *(Nan::Utf8String(info[0])));
+        std::string download_dir = *(Nan::Utf8String(info[1]));
 
         Nan::Callback* success_callback = new Nan::Callback(info[2].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
@@ -743,7 +739,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string download_dir = *(v8::String::Utf8Value(info[0]));
+        std::string download_dir = *(Nan::Utf8String(info[0]));
 
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
@@ -772,7 +768,7 @@ namespace
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
-            std::string item_id = *(v8::String::Utf8Value(info[0]));
+            std::string item_id = *(Nan::Utf8String(info[0]));
             steam_store_url = "http://steamcommunity.com/sharedfiles/filedetails/?id=" + item_id;
         }
 
@@ -788,7 +784,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
         PublishedFileId_t unsubscribed_file_id = utils::strToUint64(
-            *(v8::String::Utf8Value(info[0])));
+            *(Nan::Utf8String(info[0])));
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
 
@@ -827,7 +823,7 @@ namespace
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            published_file_id[i] = utils::strToUint64(*(v8::String::Utf8Value(Nan::Get(array, i).ToLocalChecked())));
+            published_file_id[i] = utils::strToUint64(*(Nan::Utf8String(Nan::Get(array, i).ToLocalChecked())));
         }
 
         SteamUGC()->StartPlaytimeTracking(published_file_id, length);
@@ -852,10 +848,10 @@ namespace
         {
             THROW_BAD_ARGS("bad arguments");
         }
-        std::string zip_file_path = *(v8::String::Utf8Value(info[0]));
-        std::string source_dir = *(v8::String::Utf8Value(info[1]));
-        std::string password = *(v8::String::Utf8Value(info[2]));
-        int compress_level = info[3]->Int32Value();
+        std::string zip_file_path = *(Nan::Utf8String(info[0]));
+        std::string source_dir = *(Nan::Utf8String(info[1]));
+        std::string password = *(Nan::Utf8String(info[2]));
+        int compress_level = Nan::To<int32_t>(info[3]).FromJust();
 
         Nan::Callback* success_callback = new Nan::Callback(info[4].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
@@ -877,9 +873,9 @@ namespace
         {
             THROW_BAD_ARGS("bad arguments");
         }
-        std::string zip_file_path = *(v8::String::Utf8Value(info[0]));
-        std::string extract_dir = *(v8::String::Utf8Value(info[1]));
-        std::string password = *(v8::String::Utf8Value(info[2]));
+        std::string zip_file_path = *(Nan::Utf8String(info[0]));
+        std::string extract_dir = *(Nan::Utf8String(info[1]));
+        std::string password = *(Nan::Utf8String(info[2]));
 
         Nan::Callback* success_callback = new Nan::Callback(info[3].As<v8::Function>());
         Nan::Callback* error_callback = nullptr;
@@ -909,23 +905,23 @@ namespace
             {
                 v8::Local<v8::Object> friendObject = Nan::New<v8::Object>();
 
-                friendObject->Set(Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendSteamId.GetStaticAccountKey())).ToLocalChecked());
-                friendObject->Set(Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendSteamId.ConvertToUint64())).ToLocalChecked());
+                Nan::Set(friendObject, Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendSteamId.GetStaticAccountKey())).ToLocalChecked());
+                Nan::Set(friendObject, Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendSteamId.ConvertToUint64())).ToLocalChecked());
 
                 const char* friendName = SteamFriends()->GetFriendPersonaName(friendSteamId);
                 if (friendName != NULL)
                 {
-                    friendObject->Set(Nan::New("name").ToLocalChecked(), Nan::New(std::string(friendName)).ToLocalChecked());
+                    Nan::Set(friendObject, Nan::New("name").ToLocalChecked(), Nan::New(std::string(friendName)).ToLocalChecked());
                 }
 
                 FriendGameInfo_t friendGameInfo;
                 if (SteamFriends()->GetFriendGamePlayed(friendSteamId, &friendGameInfo))
                 {
-                    friendObject->Set(Nan::New("gameId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendGameInfo.m_gameID.ToUint64())).ToLocalChecked());
-                    friendObject->Set(Nan::New("lobbyId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendGameInfo.m_steamIDLobby.ConvertToUint64())).ToLocalChecked());
+                    Nan::Set(friendObject, Nan::New("gameId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendGameInfo.m_gameID.ToUint64())).ToLocalChecked());
+                    Nan::Set(friendObject, Nan::New("lobbyId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendGameInfo.m_steamIDLobby.ConvertToUint64())).ToLocalChecked());
                 }
 
-                friends->Set(i, friendObject);
+                Nan::Set(friends, i, friendObject);
             }
         }
 
@@ -940,7 +936,7 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        int lobbyType = info[0]->Int32Value();
+        int lobbyType = Nan::To<int32_t>(info[0]).FromJust();
         if (lobbyType < 0 || lobbyType > 3)
         {
             THROW_BAD_ARGS("bad arguments");
@@ -959,7 +955,7 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string steamIdString(*(v8::String::Utf8Value(info[0])));
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
         CSteamID lobbyId(utils::strToUint64(steamIdString));
 
         SteamMatchmaking()->LeaveLobby(lobbyId);
@@ -975,7 +971,7 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string steamIdString(*(v8::String::Utf8Value(info[0])));
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
         CSteamID lobbyId(utils::strToUint64(steamIdString));
 
         SteamMatchmaking()->JoinLobby(lobbyId);
@@ -991,10 +987,10 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(v8::String::Utf8Value(info[0])));
+        std::string lobbyIdString(*(Nan::Utf8String(info[0])));
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
-        int lobbyType = info[1]->Int32Value();
+        int lobbyType = Nan::To<int32_t>(info[1]).FromJust();
         if (lobbyType < 0 || lobbyType > 3)
         {
             THROW_BAD_ARGS("bad arguments");
@@ -1013,8 +1009,8 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(v8::String::Utf8Value(info[0])));
-        std::string key(*(v8::String::Utf8Value(info[1])));
+        std::string lobbyIdString(*(Nan::Utf8String(info[0])));
+        std::string key(*(Nan::Utf8String(info[1])));
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
@@ -1031,9 +1027,9 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(v8::String::Utf8Value(info[0])));
-        std::string key(*(v8::String::Utf8Value(info[1])));
-        std::string value(*(v8::String::Utf8Value(info[2])));
+        std::string lobbyIdString(*(Nan::Utf8String(info[0])));
+        std::string key(*(Nan::Utf8String(info[1])));
+        std::string value(*(Nan::Utf8String(info[2])));
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
@@ -1050,7 +1046,7 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(v8::String::Utf8Value(info[0]->ToString())));
+        std::string lobbyIdString(*(Nan::Utf8String(info[0]->ToString())));
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
@@ -1065,16 +1061,16 @@ namespace
             {
                 v8::Local<v8::Object> lobbyMemberObject = Nan::New<v8::Object>();
 
-                lobbyMemberObject->Set(Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(lobbyMemberSteamId.GetStaticAccountKey())).ToLocalChecked());
-                lobbyMemberObject->Set(Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(lobbyMemberSteamId.ConvertToUint64())).ToLocalChecked());
+                Nan::Set(lobbyMemberObject, Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(lobbyMemberSteamId.GetStaticAccountKey())).ToLocalChecked());
+                Nan::Set(lobbyMemberObject, Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(lobbyMemberSteamId.ConvertToUint64())).ToLocalChecked());
 
                 const char* lobbyMemberName = SteamFriends()->GetFriendPersonaName(lobbyMemberSteamId);
                 if (lobbyMemberName != NULL)
                 {
-                    lobbyMemberObject->Set(Nan::New("name").ToLocalChecked(), Nan::New(std::string(lobbyMemberName)).ToLocalChecked());
+                    Nan::Set(lobbyMemberObject, Nan::New("name").ToLocalChecked(), Nan::New(std::string(lobbyMemberName)).ToLocalChecked());
                 }
 
-                lobbyMembers->Set(i, lobbyMemberObject);
+                Nan::Set(lobbyMembers, i, lobbyMemberObject);
             }
         }
 
@@ -1189,7 +1185,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(v8::String::Utf8Value(info[0])));
+        std::string name = (*(Nan::Utf8String(info[0])));
         int32 result = 0;
         if (SteamUserStats()->GetStat(name.c_str(), &result))
         {
@@ -1207,7 +1203,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(v8::String::Utf8Value(info[0])));
+        std::string name = (*(Nan::Utf8String(info[0])));
         float result = 0;
         if (SteamUserStats()->GetStat(name.c_str(), &result))
         {
@@ -1225,7 +1221,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(v8::String::Utf8Value(info[0])));
+        std::string name = (*(Nan::Utf8String(info[0])));
         int64 result = 0;
         if (SteamUserStats()->GetGlobalStat(name.c_str(), &result))
         {
@@ -1243,7 +1239,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(v8::String::Utf8Value(info[0])));
+        std::string name = (*(Nan::Utf8String(info[0])));
         double result = 0;
         if (SteamUserStats()->GetGlobalStat(name.c_str(), &result))
         {
@@ -1261,10 +1257,10 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = *(v8::String::Utf8Value(info[0]));
+        std::string name = *(Nan::Utf8String(info[0]));
         if (info[1]->IsInt32())
         {
-            int32 value = info[1].As<v8::Number>()->Int32Value();
+            int32 value = Nan::To<int32_t>(info[1]).FromJust();
             info.GetReturnValue().Set(SteamUserStats()->SetStat(name.c_str(), value));
         }
         else
