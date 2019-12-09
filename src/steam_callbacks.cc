@@ -19,6 +19,7 @@ namespace greenworks
 		OnLobbyEnteredCallback = nullptr;
 		OnLobbyChatUpdateCallback = nullptr;
 		OnLobbyJoinRequestedCallback = nullptr;
+		OnSteamRelayNetworkStatusCallback = nullptr;
 	}
 
 	void SteamCallbacks::OnGameOverlayActivated(GameOverlayActivated_t *pCallback)
@@ -111,4 +112,20 @@ namespace greenworks
 		OnLobbyJoinRequestedCallback->Call(1, argv);
 	}
 
+	void SteamCallbacks::OnSteamRelayNetworkStatus(SteamRelayNetworkStatus_t *pCallback)
+	{
+		if (OnSteamRelayNetworkStatusCallback == nullptr)
+		{
+			return;
+		}
+
+		v8::Local<v8::Value> argv[] = {
+			Nan::New<v8::Integer>(pCallback->m_eAvail),
+			Nan::New<v8::Integer>(pCallback->m_eAvailNetworkConfig),
+			Nan::New<v8::Integer>(pCallback->m_eAvailAnyRelay)
+		};
+
+		OnSteamRelayNetworkStatusCallback->Call(1, argv);
+	}
+	
 } // namespace greenworks

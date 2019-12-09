@@ -18,6 +18,9 @@
 #define SET_FUNCTION(function_name, function) \
     Nan::Set(exports, Nan::New(function_name).ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(function)).ToLocalChecked())
 
+#define SET_FUNCTION_TPL(function_name, function) \
+    Nan::SetMethod(tpl, function_name, function)
+
 greenworks::SteamCallbacks* steamCallbacks = nullptr;
 
 namespace
@@ -116,8 +119,7 @@ namespace
         Nan::Set(flags, Nan::New("contentServer").ToLocalChecked(), Nan::New(user_id.BContentServerAccount()));
         Nan::Set(flags, Nan::New("gameServer").ToLocalChecked(), Nan::New(user_id.BGameServerAccount()));
         Nan::Set(flags, Nan::New("individual").ToLocalChecked(), Nan::New(user_id.BIndividualAccount()));
-        Nan::Set(flags, Nan::New("gameServerPersistent").ToLocalChecked(),
-                 Nan::New(user_id.BPersistentGameServerAccount()));
+        Nan::Set(flags, Nan::New("gameServerPersistent").ToLocalChecked(), Nan::New(user_id.BPersistentGameServerAccount()));
         Nan::Set(flags, Nan::New("lobby").ToLocalChecked(), Nan::New(user_id.IsLobby()));
 
         v8::Local<v8::Object> result = Nan::New<v8::Object>();
@@ -1302,17 +1304,64 @@ namespace
         info.GetReturnValue().Set(SteamUserStats()->ResetAllStats(reset_achievement));
     }
 
+    NAN_METHOD(InitRelayNetworkAccess)
+    {
+        Nan::HandleScope scope;
+
+        SteamNetworkingUtils()->InitRelayNetworkAccess();
+        
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+    
+    NAN_METHOD(SetRelayNetworkStatusCallback)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsFunction())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        if (steamCallbacks == nullptr)
+        {
+            THROW_BAD_ARGS("Internal error");
+        }
+
+        if (steamCallbacks->OnSteamRelayNetworkStatusCallback != nullptr)
+        {
+            delete steamCallbacks->OnSteamRelayNetworkStatusCallback;
+            steamCallbacks->OnSteamRelayNetworkStatusCallback = nullptr;
+        }
+
+        steamCallbacks->OnSteamRelayNetworkStatusCallback = new Nan::Callback(info[0].As<v8::Function>());
+
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+    
     void InitUtilsObject(v8::Local<v8::Object> exports)
     {
         // Prepare constructor template
         v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>();
 
-        Nan::SetMethod(tpl, "createArchive", CreateArchive);
-        Nan::SetMethod(tpl, "extractArchive", ExtractArchive);
+        SET_FUNCTION_TPL("createArchive", CreateArchive);
+        SET_FUNCTION_TPL("extractArchive", ExtractArchive);
 
         Nan::Persistent<v8::Function> constructor;
         constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
         Nan::Set(exports, Nan::New("Utils").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+    }
+
+    void InitNetworkingObject(v8::Local<v8::Object> exports)
+    {
+        // Prepare constructor template
+        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>();
+
+        SET_FUNCTION_TPL("initRelayNetworkAccess", InitRelayNetworkAccess);
+        SET_FUNCTION_TPL("setRelayNetworkStatusCallback", SetRelayNetworkStatusCallback);
+
+        Nan::Persistent<v8::Function> constructor;
+        constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
+        Nan::Set(exports, Nan::New("Networking").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
     }
 
     void init(v8::Local<v8::Object> exports)
@@ -1383,19 +1432,6 @@ namespace
         SET_FUNCTION("storeStats", StoreStats);
         SET_FUNCTION("resetAllStats", ResetAllStats);
 
-        // Lobby api
-        SET_FUNCTION("createLobby", CreateLobby);
-        SET_FUNCTION("leaveLobby", LeaveLobby);
-        SET_FUNCTION("joinLobby", JoinLobby);
-        SET_FUNCTION("setLobbyType", SetLobbyType);
-        SET_FUNCTION("getLobbyData", GetLobbyData);
-        SET_FUNCTION("setLobbyData", SetLobbyData);
-        SET_FUNCTION("getLobbyMembers", GetLobbyMembers);
-        SET_FUNCTION("onLobbyCreated", OnLobbyCreated);
-        SET_FUNCTION("onLobbyEntered", OnLobbyEntered);
-        SET_FUNCTION("onLobbyChatUpdate", OnLobbyChatUpdate);
-        SET_FUNCTION("onLobbyJoinRequested", OnLobbyJoinRequested);
-
         utils::InitUgcMatchingTypes(exports);
         utils::InitUgcQueryTypes(exports);
         utils::InitUserUgcListSortOrder(exports);
@@ -1403,6 +1439,9 @@ namespace
 
         // Utils related APIs.
         InitUtilsObject(exports);
+
+        // Networking apis
+        InitNetworkingObject(exports);
     }
 } // namespace
 
