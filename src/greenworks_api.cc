@@ -1041,6 +1041,23 @@ namespace
         info.GetReturnValue().Set(Nan::New(success));
     }
 
+    NAN_METHOD(GetLobbyOwner)
+    {
+        Nan::HandleScope scope;
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("bad arguments");
+        }
+
+        std::string lobbyIdString = *(Nan::Utf8String(info[0]));
+
+        CSteamID lobbyId(utils::strToUint64(lobbyIdString));
+
+        CSteamID lobbyOwner = SteamMatchmaking()->GetLobbyOwner(lobbyId);
+
+        info.GetReturnValue().Set(Nan::New<v8::String>(utils::uint64ToString(lobbyOwner.ConvertToUint64())).ToLocalChecked());
+    }
+
     NAN_METHOD(GetLobbyMembers)
     {
         Nan::HandleScope scope;
@@ -1314,6 +1331,23 @@ namespace
         info.GetReturnValue().Set(Nan::Undefined());
     }
 
+    NAN_METHOD(GetRelayNetworkStatus)
+    {
+        Nan::HandleScope scope;
+
+        SteamRelayNetworkStatus_t status;
+        SteamNetworkingUtils()->GetRelayNetworkStatus(&status);
+
+        v8::Local<v8::Object> result = Nan::New<v8::Object>();
+
+        Nan::Set(result, Nan::New("availabilitySummary").ToLocalChecked(), Nan::New<v8::Integer>(status.m_eAvail));
+        Nan::Set(result, Nan::New("availabilityNetworkConfig").ToLocalChecked(), Nan::New<v8::Integer>(status.m_eAvailNetworkConfig));
+        Nan::Set(result, Nan::New("availabilityAnyRelay").ToLocalChecked(), Nan::New<v8::Integer>(status.m_eAvailAnyRelay));
+        Nan::Set(result, Nan::New("debugMessage").ToLocalChecked(), Nan::New<v8::String>(status.m_debugMsg).ToLocalChecked());
+
+        info.GetReturnValue().Set(result);
+    }
+
     NAN_METHOD(SetRelayNetworkStatusCallback)
     {
         Nan::HandleScope scope;
@@ -1503,6 +1537,35 @@ namespace
         }
     }
 
+    NAN_METHOD(GetP2PSessionState)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        CSteamID steamIdRemote(utils::strToUint64(steamIdString));
+
+        P2PSessionState_t sessionState;
+        bool success = SteamNetworking()->GetP2PSessionState(steamIdRemote, &sessionState);
+        if (success)
+        {
+            v8::Local<v8::Object> result = Nan::New<v8::Object>();
+            Nan::Set(result, Nan::New("connectionActive").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_bConnectionActive));
+            Nan::Set(result, Nan::New("connecting").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_bConnecting));
+            Nan::Set(result, Nan::New("lastError").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_eP2PSessionError));
+            Nan::Set(result, Nan::New("usingRelay").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_bUsingRelay));
+            info.GetReturnValue().Set(result);
+        }
+        else
+        {
+            info.GetReturnValue().Set(Nan::Undefined());
+        }
+    }
+
     void InitUtilsObject(v8::Local<v8::Object> exports)
     {
         // Prepare constructor template
@@ -1522,13 +1585,15 @@ namespace
         v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>();
 
         SET_FUNCTION_TPL("initRelayNetworkAccess", InitRelayNetworkAccess);
+        SET_FUNCTION_TPL("getRelayNetworkStatus", GetRelayNetworkStatus);
+        SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);
+        SET_FUNCTION_TPL("isP2PPacketAvailable", IsP2PPacketAvailable);
+        SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
+        SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
+        SET_FUNCTION_TPL("getP2PSessionState", GetP2PSessionState);
         SET_FUNCTION_TPL("setRelayNetworkStatusCallback", SetRelayNetworkStatusCallback);
         SET_FUNCTION_TPL("setP2PSessionRequestCallback", SetP2PSessionRequestCallback);
         SET_FUNCTION_TPL("setP2PSessionConnectFailCallback", SetP2PSessionConnectFailCallback);
-        SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);
-        SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
-        SET_FUNCTION_TPL("isP2PPacketAvailable", IsP2PPacketAvailable);
-        SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
 
         Nan::Persistent<v8::Function> constructor;
         constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
@@ -1610,6 +1675,7 @@ namespace
         SET_FUNCTION("setLobbyType", SetLobbyType);
         SET_FUNCTION("getLobbyData", GetLobbyData);
         SET_FUNCTION("setLobbyData", SetLobbyData);
+        SET_FUNCTION("getLobbyOwner", GetLobbyOwner);
         SET_FUNCTION("getLobbyMembers", GetLobbyMembers);
         SET_FUNCTION("onLobbyCreated", OnLobbyCreated);
         SET_FUNCTION("onLobbyEntered", OnLobbyEntered);

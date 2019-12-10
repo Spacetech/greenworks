@@ -125,6 +125,7 @@ namespace greenworks
             Nan::New<v8::Integer>(pCallback->m_eAvail),
             Nan::New<v8::Integer>(pCallback->m_eAvailNetworkConfig),
             Nan::New<v8::Integer>(pCallback->m_eAvailAnyRelay),
+            Nan::New<v8::String>(pCallback->m_debugMsg).ToLocalChecked(),
         };
 
         OnSteamRelayNetworkStatusCallback->Call(3, argv);
