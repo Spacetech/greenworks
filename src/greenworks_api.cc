@@ -193,7 +193,7 @@ namespace
         {
             if (!Nan::Get(files, i).ToLocalChecked()->IsString())
                 THROW_BAD_ARGS("Bad arguments");
-            v8::String::Utf8Value string_array(Nan::Get(files, i).ToLocalChecked());
+            Nan::Utf8String string_array(Nan::Get(files, i).ToLocalChecked());
             // Ignore empty path.
             if (string_array.length() > 0)
                 files_path.push_back(*string_array);
@@ -598,7 +598,7 @@ namespace
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            v8::String::Utf8Value string_array(Nan::Get(tagsArray, i).ToLocalChecked());
+            Nan::Utf8String string_array(Nan::Get(tagsArray, i).ToLocalChecked());
             if (string_array.length() > 0)
             {
                 tags.push_back(*string_array);
@@ -644,7 +644,7 @@ namespace
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            v8::String::Utf8Value string_array(Nan::Get(tagsArray, i).ToLocalChecked());
+            Nan::Utf8String string_array(Nan::Get(tagsArray, i).ToLocalChecked());
             if (string_array.length() > 0)
             {
                 tags.push_back(*string_array);
@@ -741,6 +741,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
+
         std::string download_dir = *(Nan::Utf8String(info[0]));
 
         Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
@@ -1048,7 +1049,7 @@ namespace
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(Nan::Utf8String(info[0]->ToString())));
+        std::string lobbyIdString = *(Nan::Utf8String(info[0]));
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
@@ -1300,7 +1301,7 @@ namespace
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        bool reset_achievement = info[0]->BooleanValue();
+        bool reset_achievement = info[0]->BooleanValue(v8::Isolate::GetCurrent());
         info.GetReturnValue().Set(SteamUserStats()->ResetAllStats(reset_achievement));
     }
 
@@ -1309,10 +1310,10 @@ namespace
         Nan::HandleScope scope;
 
         SteamNetworkingUtils()->InitRelayNetworkAccess();
-        
+
         info.GetReturnValue().Set(Nan::Undefined());
     }
-    
+
     NAN_METHOD(SetRelayNetworkStatusCallback)
     {
         Nan::HandleScope scope;
@@ -1337,7 +1338,95 @@ namespace
 
         info.GetReturnValue().Set(Nan::Undefined());
     }
-    
+
+    NAN_METHOD(AcceptP2PSessionWithUser)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        CSteamID steamIdRemote(utils::strToUint64(steamIdString));
+
+        bool success = SteamNetworking()->AcceptP2PSessionWithUser(steamIdRemote);
+
+        info.GetReturnValue().Set(Nan::New<v8::Boolean>(success));
+    }
+
+    NAN_METHOD(SendP2PPacket)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsUint8Array())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        CSteamID steamIdRemote(utils::strToUint64(steamIdString));
+
+        v8::Local<v8::Uint8Array> array = info[1].As<v8::Uint8Array>();
+
+        Nan::TypedArrayContents<uint8_t> typedArrayContents(array);
+        uint8_t* dst = *typedArrayContents;
+
+        bool sent = SteamNetworking()->SendP2PPacket(steamIdRemote, dst, sizeof(uint8_t) * typedArrayContents.length(), EP2PSend::k_EP2PSendReliable);
+
+        info.GetReturnValue().Set(Nan::New<v8::Boolean>(sent));
+    }
+
+    NAN_METHOD(IsP2PPacketAvailable)
+    {
+        Nan::HandleScope scope;
+
+        uint32 messageSize;
+        bool result = SteamNetworking()->IsP2PPacketAvailable(&messageSize);
+        if (result && messageSize > 0)
+        {
+            info.GetReturnValue().Set(Nan::New<v8::Integer>(messageSize));
+        }
+        else
+        {
+            info.GetReturnValue().Set(Nan::Undefined());
+        }
+    }
+
+    NAN_METHOD(ReadP2PPacket)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsNumber())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        uint32 length = Nan::To<uint32>(info[0]).FromJust();
+
+        v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), length);
+        v8::Local<v8::Uint8Array> clampedArray = v8::Uint8Array::New(buffer, 0, length);
+
+        Nan::TypedArrayContents<uint8_t> typedArrayContents(clampedArray);
+        uint8_t* dst = *typedArrayContents;
+
+        uint32 packetSize;
+        CSteamID steamIdRemote;
+        bool success = SteamNetworking()->ReadP2PPacket(dst, sizeof(uint8_t) * length, &packetSize, &steamIdRemote);
+        if (success)
+        {
+            v8::Local<v8::Object> result = Nan::New<v8::Object>();
+            Nan::Set(result, Nan::New("steamIdRemote").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(steamIdRemote.ConvertToUint64())).ToLocalChecked());
+            Nan::Set(result, Nan::New("data").ToLocalChecked(), clampedArray);
+            info.GetReturnValue().Set(result);
+        }
+        else
+        {
+            info.GetReturnValue().Set(Nan::Undefined());
+        }
+    }
+
     void InitUtilsObject(v8::Local<v8::Object> exports)
     {
         // Prepare constructor template
@@ -1358,6 +1447,10 @@ namespace
 
         SET_FUNCTION_TPL("initRelayNetworkAccess", InitRelayNetworkAccess);
         SET_FUNCTION_TPL("setRelayNetworkStatusCallback", SetRelayNetworkStatusCallback);
+        SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);
+        SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
+        SET_FUNCTION_TPL("isP2PPacketAvailable", IsP2PPacketAvailable);
+        SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
 
         Nan::Persistent<v8::Function> constructor;
         constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
@@ -1431,6 +1524,19 @@ namespace
         SET_FUNCTION("setStat", SetStat);
         SET_FUNCTION("storeStats", StoreStats);
         SET_FUNCTION("resetAllStats", ResetAllStats);
+
+        // Lobby api
+        SET_FUNCTION("createLobby", CreateLobby);
+        SET_FUNCTION("leaveLobby", LeaveLobby);
+        SET_FUNCTION("joinLobby", JoinLobby);
+        SET_FUNCTION("setLobbyType", SetLobbyType);
+        SET_FUNCTION("getLobbyData", GetLobbyData);
+        SET_FUNCTION("setLobbyData", SetLobbyData);
+        SET_FUNCTION("getLobbyMembers", GetLobbyMembers);
+        SET_FUNCTION("onLobbyCreated", OnLobbyCreated);
+        SET_FUNCTION("onLobbyEntered", OnLobbyEntered);
+        SET_FUNCTION("onLobbyChatUpdate", OnLobbyChatUpdate);
+        SET_FUNCTION("onLobbyJoinRequested", OnLobbyJoinRequested);
 
         utils::InitUgcMatchingTypes(exports);
         utils::InitUgcQueryTypes(exports);
