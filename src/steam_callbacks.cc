@@ -11,121 +11,152 @@
 
 namespace greenworks
 {
-	SteamCallbacks::SteamCallbacks()
-	{
-		OnGameOverlayActivatedCallback = nullptr;
-		OnGameJoinRequestedCallback = nullptr;
-		OnLobbyCreatedCallback = nullptr;
-		OnLobbyEnteredCallback = nullptr;
-		OnLobbyChatUpdateCallback = nullptr;
-		OnLobbyJoinRequestedCallback = nullptr;
-		OnSteamRelayNetworkStatusCallback = nullptr;
-	}
+    SteamCallbacks::SteamCallbacks()
+    {
+        OnGameOverlayActivatedCallback = nullptr;
+        OnGameJoinRequestedCallback = nullptr;
+        OnLobbyCreatedCallback = nullptr;
+        OnLobbyEnteredCallback = nullptr;
+        OnLobbyChatUpdateCallback = nullptr;
+        OnLobbyJoinRequestedCallback = nullptr;
+        OnSteamRelayNetworkStatusCallback = nullptr;
+        OnP2PSessionRequestCallback = nullptr;
+        OnP2PSessionConnectFailCallback = nullptr;
+    }
 
-	void SteamCallbacks::OnGameOverlayActivated(GameOverlayActivated_t *pCallback)
-	{
-		if (OnGameOverlayActivatedCallback == nullptr)
-		{
-			return;
-		}
+    void SteamCallbacks::OnGameOverlayActivated(GameOverlayActivated_t* pCallback)
+    {
+        if (OnGameOverlayActivatedCallback == nullptr)
+        {
+            return;
+        }
 
-		v8::Local<v8::Value> argv[] = {
-			Nan::New<v8::Boolean>(pCallback->m_bActive ? true : false)
-		};
+        v8::Local<v8::Value> argv[] = {
+            Nan::New<v8::Boolean>(pCallback->m_bActive ? true : false),
+        };
 
-		OnGameOverlayActivatedCallback->Call(1, argv);
-	}
+        OnGameOverlayActivatedCallback->Call(1, argv);
+    }
 
-	void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t *pCallback)
-	{
-		if (OnGameJoinRequestedCallback == nullptr)
-		{
-			return;
-		}
+    void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t* pCallback)
+    {
+        if (OnGameJoinRequestedCallback == nullptr)
+        {
+            return;
+        }
 
-		v8::Local<v8::Value> argv[] = {
-			Nan::New<v8::String>(pCallback->m_rgchConnect).ToLocalChecked()
-		};
+        v8::Local<v8::Value> argv[] = {
+            Nan::New<v8::String>(pCallback->m_rgchConnect).ToLocalChecked(),
+        };
 
-		OnGameJoinRequestedCallback->Call(1, argv);
-	}
+        OnGameJoinRequestedCallback->Call(1, argv);
+    }
 
-	void SteamCallbacks::OnLobbyCreated(LobbyCreated_t *pCallback)
-	{
-		if (OnLobbyCreatedCallback == nullptr)
-		{
-			return;
-		}
+    void SteamCallbacks::OnLobbyCreated(LobbyCreated_t* pCallback)
+    {
+        if (OnLobbyCreatedCallback == nullptr)
+        {
+            return;
+        }
 
-		v8::Local<v8::Value> argv[] = {
-			Nan::New<v8::Boolean>(pCallback->m_eResult == k_EResultOK),
-			Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
-			Nan::New<v8::Integer>(pCallback->m_eResult)
-		};
+        v8::Local<v8::Value> argv[] = {
+            Nan::New<v8::Boolean>(pCallback->m_eResult == k_EResultOK),
+            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
+            Nan::New<v8::Integer>(pCallback->m_eResult),
+        };
 
-		OnLobbyCreatedCallback->Call(3, argv);
-	}
+        OnLobbyCreatedCallback->Call(3, argv);
+    }
 
-	void SteamCallbacks::OnLobbyEntered(LobbyEnter_t *pCallback)
-	{
-		if (OnLobbyEnteredCallback == nullptr)
-		{
-			return;
-		}
-		
-		v8::Local<v8::Value> argv[] = {
-			Nan::New<v8::Boolean>(pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess),
-			Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
-			Nan::New<v8::Integer>(pCallback->m_EChatRoomEnterResponse)
-		};
+    void SteamCallbacks::OnLobbyEntered(LobbyEnter_t* pCallback)
+    {
+        if (OnLobbyEnteredCallback == nullptr)
+        {
+            return;
+        }
 
-		OnLobbyEnteredCallback->Call(3, argv);
-	}
+        v8::Local<v8::Value> argv[] = {
+            Nan::New<v8::Boolean>(pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess),
+            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
+            Nan::New<v8::Integer>(pCallback->m_EChatRoomEnterResponse),
+        };
 
-	void SteamCallbacks::OnLobbyChatUpdate(LobbyChatUpdate_t *pCallback)
-	{
-		if (OnLobbyChatUpdateCallback == nullptr)
-		{
-			return;
-		}
+        OnLobbyEnteredCallback->Call(3, argv);
+    }
 
-		v8::Local<v8::Value> argv[] = {
-			Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
-			Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDUserChanged)).ToLocalChecked(),
-			Nan::New(pCallback->m_rgfChatMemberStateChange)
-		};
+    void SteamCallbacks::OnLobbyChatUpdate(LobbyChatUpdate_t* pCallback)
+    {
+        if (OnLobbyChatUpdateCallback == nullptr)
+        {
+            return;
+        }
 
-		OnLobbyChatUpdateCallback->Call(3, argv);
-	}
+        v8::Local<v8::Value> argv[] = {
+            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
+            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDUserChanged)).ToLocalChecked(),
+            Nan::New(pCallback->m_rgfChatMemberStateChange),
+        };
 
-	void SteamCallbacks::OnLobbyJoinRequested(GameLobbyJoinRequested_t *pCallback)
-	{
-		if (OnLobbyJoinRequestedCallback == nullptr)
-		{
-			return;
-		}
+        OnLobbyChatUpdateCallback->Call(3, argv);
+    }
 
-		v8::Local<v8::Value> argv[] = {
-			Nan::New(utils::uint64ToString(pCallback->m_steamIDLobby.ConvertToUint64())).ToLocalChecked()
-		};
+    void SteamCallbacks::OnLobbyJoinRequested(GameLobbyJoinRequested_t* pCallback)
+    {
+        if (OnLobbyJoinRequestedCallback == nullptr)
+        {
+            return;
+        }
 
-		OnLobbyJoinRequestedCallback->Call(1, argv);
-	}
+        v8::Local<v8::Value> argv[] = {
+            Nan::New(utils::uint64ToString(pCallback->m_steamIDLobby.ConvertToUint64())).ToLocalChecked(),
+        };
 
-	void SteamCallbacks::OnSteamRelayNetworkStatus(SteamRelayNetworkStatus_t *pCallback)
-	{
-		if (OnSteamRelayNetworkStatusCallback == nullptr)
-		{
-			return;
-		}
+        OnLobbyJoinRequestedCallback->Call(1, argv);
+    }
 
-		v8::Local<v8::Value> argv[] = {
-			Nan::New<v8::Integer>(pCallback->m_eAvail),
-			Nan::New<v8::Integer>(pCallback->m_eAvailNetworkConfig),
-			Nan::New<v8::Integer>(pCallback->m_eAvailAnyRelay)
-		};
+    void SteamCallbacks::OnSteamRelayNetworkStatus(SteamRelayNetworkStatus_t* pCallback)
+    {
+        if (OnSteamRelayNetworkStatusCallback == nullptr)
+        {
+            return;
+        }
 
-		OnSteamRelayNetworkStatusCallback->Call(1, argv);
-	}
-	
+        v8::Local<v8::Value> argv[] = {
+            Nan::New<v8::Integer>(pCallback->m_eAvail),
+            Nan::New<v8::Integer>(pCallback->m_eAvailNetworkConfig),
+            Nan::New<v8::Integer>(pCallback->m_eAvailAnyRelay),
+        };
+
+        OnSteamRelayNetworkStatusCallback->Call(3, argv);
+    }
+
+    void SteamCallbacks::OnP2PSessionRequest(P2PSessionRequest_t* pCallback)
+    {
+        if (OnP2PSessionRequestCallback == nullptr)
+        {
+            return;
+        }
+
+        v8::Local<v8::Value> argv[] = {
+            Nan::New(utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())).ToLocalChecked(),
+        };
+
+        OnP2PSessionRequestCallback->Call(1, argv);
+    }
+
+    void SteamCallbacks::OnP2PSessionConnectFail(P2PSessionConnectFail_t* pCallback)
+    {
+        if (OnP2PSessionConnectFailCallback == nullptr)
+        {
+            return;
+        }
+
+        v8::Local<v8::Value> argv[] = {
+            Nan::New(utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())).ToLocalChecked(),
+            Nan::New<v8::Integer>(pCallback->m_eP2PSessionError),
+        };
+
+        OnP2PSessionConnectFailCallback->Call(2, argv);
+    }
+
 } // namespace greenworks

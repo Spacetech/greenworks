@@ -1339,6 +1339,56 @@ namespace
         info.GetReturnValue().Set(Nan::Undefined());
     }
 
+    NAN_METHOD(SetP2PSessionRequestCallback)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsFunction())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        if (steamCallbacks == nullptr)
+        {
+            THROW_BAD_ARGS("Internal error");
+        }
+
+        if (steamCallbacks->OnP2PSessionRequestCallback != nullptr)
+        {
+            delete steamCallbacks->OnP2PSessionRequestCallback;
+            steamCallbacks->OnP2PSessionRequestCallback = nullptr;
+        }
+
+        steamCallbacks->OnP2PSessionRequestCallback = new Nan::Callback(info[0].As<v8::Function>());
+
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+
+    NAN_METHOD(SetP2PSessionConnectFailCallback)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsFunction())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        if (steamCallbacks == nullptr)
+        {
+            THROW_BAD_ARGS("Internal error");
+        }
+
+        if (steamCallbacks->OnP2PSessionConnectFailCallback != nullptr)
+        {
+            delete steamCallbacks->OnP2PSessionConnectFailCallback;
+            steamCallbacks->OnP2PSessionConnectFailCallback = nullptr;
+        }
+
+        steamCallbacks->OnP2PSessionConnectFailCallback = new Nan::Callback(info[0].As<v8::Function>());
+
+        info.GetReturnValue().Set(Nan::Undefined());
+    }
+
     NAN_METHOD(AcceptP2PSessionWithUser)
     {
         Nan::HandleScope scope;
@@ -1368,12 +1418,11 @@ namespace
         std::string steamIdString(*(Nan::Utf8String(info[0])));
         CSteamID steamIdRemote(utils::strToUint64(steamIdString));
 
-        v8::Local<v8::Uint8Array> array = info[1].As<v8::Uint8Array>();
-
-        Nan::TypedArrayContents<uint8_t> typedArrayContents(array);
+        Nan::TypedArrayContents<uint8_t> typedArrayContents(info[1]);
         uint8_t* dst = *typedArrayContents;
+        uint32 length = sizeof(uint8_t) * typedArrayContents.length();
 
-        bool sent = SteamNetworking()->SendP2PPacket(steamIdRemote, dst, sizeof(uint8_t) * typedArrayContents.length(), EP2PSend::k_EP2PSendReliable);
+        bool sent = SteamNetworking()->SendP2PPacket(steamIdRemote, dst, length, EP2PSend::k_EP2PSendReliable);
 
         info.GetReturnValue().Set(Nan::New<v8::Boolean>(sent));
     }
@@ -1405,21 +1454,48 @@ namespace
 
         uint32 length = Nan::To<uint32>(info[0]).FromJust();
 
-        v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), length);
-        v8::Local<v8::Uint8Array> clampedArray = v8::Uint8Array::New(buffer, 0, length);
+        bool useProvidedArray = info.Length() > 1 && info[1]->IsUint8Array();
+        uint8_t* dst;
+        v8::Local<v8::Uint8Array>* array = nullptr;
 
-        Nan::TypedArrayContents<uint8_t> typedArrayContents(clampedArray);
-        uint8_t* dst = *typedArrayContents;
+        if (useProvidedArray)
+        {
+            Nan::TypedArrayContents<uint8_t> typedArrayContents(info[1]);
+
+            if (typedArrayContents.length() < length)
+            {
+                THROW_BAD_ARGS("Bad arguments");
+            }
+
+            dst = *typedArrayContents;
+        }
+        else
+        {
+            v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), length);
+            array = &v8::Uint8Array::New(buffer, 0, length);
+
+            Nan::TypedArrayContents<uint8_t> typedArrayContents(*array);
+            dst = *typedArrayContents;
+        }
 
         uint32 packetSize;
         CSteamID steamIdRemote;
         bool success = SteamNetworking()->ReadP2PPacket(dst, sizeof(uint8_t) * length, &packetSize, &steamIdRemote);
         if (success)
         {
-            v8::Local<v8::Object> result = Nan::New<v8::Object>();
-            Nan::Set(result, Nan::New("steamIdRemote").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(steamIdRemote.ConvertToUint64())).ToLocalChecked());
-            Nan::Set(result, Nan::New("data").ToLocalChecked(), clampedArray);
-            info.GetReturnValue().Set(result);
+            auto steamIdRemoteString = Nan::New<v8::String>(utils::uint64ToString(steamIdRemote.ConvertToUint64())).ToLocalChecked();
+
+            if (array == nullptr)
+            {
+                info.GetReturnValue().Set(steamIdRemoteString);
+            }
+            else
+            {
+                v8::Local<v8::Object> result = Nan::New<v8::Object>();
+                Nan::Set(result, Nan::New("steamIdRemote").ToLocalChecked(), steamIdRemoteString);
+                Nan::Set(result, Nan::New("data").ToLocalChecked(), *array);
+                info.GetReturnValue().Set(result);
+            }
         }
         else
         {
@@ -1447,6 +1523,8 @@ namespace
 
         SET_FUNCTION_TPL("initRelayNetworkAccess", InitRelayNetworkAccess);
         SET_FUNCTION_TPL("setRelayNetworkStatusCallback", SetRelayNetworkStatusCallback);
+        SET_FUNCTION_TPL("setP2PSessionRequestCallback", SetP2PSessionRequestCallback);
+        SET_FUNCTION_TPL("setP2PSessionConnectFailCallback", SetP2PSessionConnectFailCallback);
         SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);
         SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
         SET_FUNCTION_TPL("isP2PPacketAvailable", IsP2PPacketAvailable);
@@ -1454,7 +1532,7 @@ namespace
 
         Nan::Persistent<v8::Function> constructor;
         constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
-        Nan::Set(exports, Nan::New("Networking").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+        Nan::Set(exports, Nan::New("networking").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
     }
 
     void init(v8::Local<v8::Object> exports)

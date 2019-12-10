@@ -7,6 +7,7 @@
 
 #include "nan.h"
 #include "steam/steam_api.h"
+#include "steam/isteamnetworking.h"
 #include "steam/isteamnetworkingutils.h"
 #include "steam/steamnetworkingtypes.h"
 
@@ -26,6 +27,8 @@ namespace greenworks
 		SETUP_STEAM_CALLBACK_DECLARATION(OnLobbyChatUpdate, LobbyChatUpdate_t);
 		SETUP_STEAM_CALLBACK_DECLARATION(OnLobbyJoinRequested, GameLobbyJoinRequested_t);
 		SETUP_STEAM_CALLBACK_DECLARATION(OnSteamRelayNetworkStatus, SteamRelayNetworkStatus_t);
+		SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionRequest, P2PSessionRequest_t);
+		SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionConnectFail, P2PSessionConnectFail_t);
 	};
 } // namespace greenworks
 
