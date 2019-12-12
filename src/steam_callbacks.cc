@@ -12,6 +12,15 @@
 namespace greenworks
 {
     SteamCallbacks::SteamCallbacks()
+        : SETUP_STEAM_CALLBACK_MEMBER(OnGameOverlayActivated),
+          SETUP_STEAM_CALLBACK_MEMBER(OnGameJoinRequested),
+          SETUP_STEAM_CALLBACK_MEMBER(OnLobbyCreated),
+          SETUP_STEAM_CALLBACK_MEMBER(OnLobbyEntered),
+          SETUP_STEAM_CALLBACK_MEMBER(OnLobbyChatUpdate),
+          SETUP_STEAM_CALLBACK_MEMBER(OnLobbyJoinRequested),
+          //   SETUP_STEAM_CALLBACK_MEMBER(OnSteamRelayNetworkStatus),
+          SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest),
+          SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail)
     {
         OnGameOverlayActivatedCallback = nullptr;
         OnGameJoinRequestedCallback = nullptr;
@@ -19,7 +28,7 @@ namespace greenworks
         OnLobbyEnteredCallback = nullptr;
         OnLobbyChatUpdateCallback = nullptr;
         OnLobbyJoinRequestedCallback = nullptr;
-        OnSteamRelayNetworkStatusCallback = nullptr;
+        // OnSteamRelayNetworkStatusCallback = nullptr;
         OnP2PSessionRequestCallback = nullptr;
         OnP2PSessionConnectFailCallback = nullptr;
     }
@@ -114,6 +123,7 @@ namespace greenworks
         OnLobbyJoinRequestedCallback->Call(1, argv);
     }
 
+    /* broken / doesn't exist
     void SteamCallbacks::OnSteamRelayNetworkStatus(SteamRelayNetworkStatus_t* pCallback)
     {
         if (OnSteamRelayNetworkStatusCallback == nullptr)
@@ -130,6 +140,7 @@ namespace greenworks
 
         OnSteamRelayNetworkStatusCallback->Call(3, argv);
     }
+    */
 
     void SteamCallbacks::OnP2PSessionRequest(P2PSessionRequest_t* pCallback)
     {

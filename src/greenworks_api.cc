@@ -256,7 +256,8 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        bool enable_flag = info[0]->BooleanValue();
+        
+        bool enable_flag = info[0]->BooleanValue(v8::Isolate::GetCurrent());
         SteamRemoteStorage()->SetCloudEnabledForApp(enable_flag);
         info.GetReturnValue().Set(Nan::Undefined());
     }
@@ -1362,13 +1363,13 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnSteamRelayNetworkStatusCallback != nullptr)
-        {
-            delete steamCallbacks->OnSteamRelayNetworkStatusCallback;
-            steamCallbacks->OnSteamRelayNetworkStatusCallback = nullptr;
-        }
+        // if (steamCallbacks->OnSteamRelayNetworkStatusCallback != nullptr)
+        // {
+        //     delete steamCallbacks->OnSteamRelayNetworkStatusCallback;
+        //     steamCallbacks->OnSteamRelayNetworkStatusCallback = nullptr;
+        // }
 
-        steamCallbacks->OnSteamRelayNetworkStatusCallback = new Nan::Callback(info[0].As<v8::Function>());
+        // steamCallbacks->OnSteamRelayNetworkStatusCallback = new Nan::Callback(info[0].As<v8::Function>());
 
         info.GetReturnValue().Set(Nan::Undefined());
     }
@@ -1490,7 +1491,7 @@ namespace
 
         bool useProvidedArray = info.Length() > 1 && info[1]->IsUint8Array();
         uint8_t* dst;
-        v8::Local<v8::Uint8Array>* array = nullptr;
+        v8::Local<v8::Uint8Array> array;
 
         if (useProvidedArray)
         {
@@ -1506,9 +1507,9 @@ namespace
         else
         {
             v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), length);
-            array = &v8::Uint8Array::New(buffer, 0, length);
+            array = v8::Uint8Array::New(buffer, 0, length);
 
-            Nan::TypedArrayContents<uint8_t> typedArrayContents(*array);
+            Nan::TypedArrayContents<uint8_t> typedArrayContents(array);
             dst = *typedArrayContents;
         }
 
@@ -1519,7 +1520,7 @@ namespace
         {
             auto steamIdRemoteString = Nan::New<v8::String>(utils::uint64ToString(steamIdRemote.ConvertToUint64())).ToLocalChecked();
 
-            if (array == nullptr)
+            if (useProvidedArray)
             {
                 info.GetReturnValue().Set(steamIdRemoteString);
             }
@@ -1527,7 +1528,7 @@ namespace
             {
                 v8::Local<v8::Object> result = Nan::New<v8::Object>();
                 Nan::Set(result, Nan::New("steamIdRemote").ToLocalChecked(), steamIdRemoteString);
-                Nan::Set(result, Nan::New("data").ToLocalChecked(), *array);
+                Nan::Set(result, Nan::New("data").ToLocalChecked(), array);
                 info.GetReturnValue().Set(result);
             }
         }

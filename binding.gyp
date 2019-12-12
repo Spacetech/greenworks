@@ -86,6 +86,7 @@
       ],
       'include_dirs': [
         'deps',
+        'src',
         '<(steamworks_sdk_dir)/public',
         '<!(node -e "require(\'nan\')")'
       ],
@@ -95,6 +96,7 @@
           '<(source_root_dir)/<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)'
         ]
       },
+      'cflags': [ '-std=c++11', '-Wno-deprecated-declarations' ],
       'conditions': [
         ['OS== "linux"',
           {
@@ -124,12 +126,18 @@
         'WARNING_CFLAGS':  [
           '-Wno-deprecated-declarations',
         ],
-        'OTHER_CFLAGS': [
-          '-std=gnu++0x',
-          '-Wno-c++0x-extensions',
-          '-Wno-c++11-extensions',
-        ]
+        'OTHER_CPLUSPLUSFLAGS' : [
+          '-std=c++11',
+          '-stdlib=libc++'
+        ],
+        'OTHER_LDFLAGS': [
+          '-stdlib=libc++'
+        ],
       },
+      'msvs_disabled_warnings': [
+        4068,  # disable unknown pragma warnings from nw.js custom node_buffer.h.
+        4267,  # conversion from 'size_t' to 'int', popssible loss of data
+      ],
     },
     {
       'target_name': 'copy_binaries',
