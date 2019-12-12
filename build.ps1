@@ -12,6 +12,8 @@ $bashPath = (($root -replace "\\","/") -replace ":","").ToLower().Trim("/")
 
 Remove-Item $root\lib -Force -Recurse -ErrorAction SilentlyContinue
 
+npm install -g node-gyp
+
 npm install --ignore-scripts
 
 if (-not $Only64Bit) {
