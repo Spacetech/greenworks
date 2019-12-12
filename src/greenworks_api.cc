@@ -256,7 +256,7 @@ namespace
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        
+
         bool enable_flag = info[0]->BooleanValue(v8::Isolate::GetCurrent());
         SteamRemoteStorage()->SetCloudEnabledForApp(enable_flag);
         info.GetReturnValue().Set(Nan::Undefined());
@@ -1567,6 +1567,23 @@ namespace
         }
     }
 
+    NAN_METHOD(CloseP2PSessionWithUser)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        CSteamID steamIdRemote(utils::strToUint64(steamIdString));
+
+        bool result = SteamNetworking()->CloseP2PSessionWithUser(steamIdRemote);
+
+        info.GetReturnValue().Set(Nan::New<v8::Boolean>(result));
+    }
+
     void InitUtilsObject(v8::Local<v8::Object> exports)
     {
         // Prepare constructor template
@@ -1592,6 +1609,7 @@ namespace
         SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
         SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
         SET_FUNCTION_TPL("getP2PSessionState", GetP2PSessionState);
+        SET_FUNCTION_TPL("closeP2PSessionWithUser", CloseP2PSessionWithUser);
         SET_FUNCTION_TPL("setRelayNetworkStatusCallback", SetRelayNetworkStatusCallback);
         SET_FUNCTION_TPL("setP2PSessionRequestCallback", SetP2PSessionRequestCallback);
         SET_FUNCTION_TPL("setP2PSessionConnectFailCallback", SetP2PSessionConnectFailCallback);
