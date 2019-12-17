@@ -31,16 +31,17 @@
         ['target_arch=="ia32"', {
           'variables': {
             'project_name': 'greenworks-osx32',
+            'redist_bin_dir': 'osx'
           },
         }],
         ['target_arch=="x64"', {
           'variables': {
             'project_name': 'greenworks-osx64',
+            'redist_bin_dir': 'osx32'
           },
         }],
       ],
       'variables': {
-        'redist_bin_dir': 'osx32',
         'lib_steam': 'libsteam_api.dylib'
       },
     }],
