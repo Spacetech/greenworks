@@ -31,13 +31,13 @@
         ['target_arch=="ia32"', {
           'variables': {
             'project_name': 'greenworks-osx32',
-            'redist_bin_dir': 'osx'
+            'redist_bin_dir': 'osx32'
           },
         }],
         ['target_arch=="x64"', {
           'variables': {
             'project_name': 'greenworks-osx64',
-            'redist_bin_dir': 'osx32'
+            'redist_bin_dir': 'osx'
           },
         }],
       ],
