@@ -9,34 +9,46 @@
 
 namespace greenworks
 {
-	// Extend NanAsyncWorker with custom error callback supports.
-	class SteamAsyncWorker : public Nan::AsyncWorker
-	{
-	public:
-		SteamAsyncWorker(Nan::Callback* success_callback, Nan::Callback* error_callback);
+    // Extend NanAsyncWorker with custom error callback supports.
+    class SteamAsyncWorker : public Nan::AsyncWorker
+    {
+      public:
+        SteamAsyncWorker(Nan::Callback* success_callback, Nan::Callback* error_callback);
 
-		~SteamAsyncWorker();
+        ~SteamAsyncWorker();
 
-		// Override NanAsyncWorker methods:
-		virtual void HandleErrorCallback() override;
+        // Override NanAsyncWorker methods:
+        virtual void HandleErrorCallback() override;
 
-	protected:
-		Nan::Callback* error_callback_;
-	};
+      protected:
+        Nan::Callback* error_callback_;
 
-	// An abstract SteamAsyncWorker for Steam callback API.
-	class SteamCallbackAsyncWorker : public SteamAsyncWorker
-	{
-	public:
-		SteamCallbackAsyncWorker(Nan::Callback* success_callback,
-		                         Nan::Callback* error_callback);
+        void SetErrorMessageEx(const char* format, ...)
+        {
+            char buffer[1024];
 
-		void WaitForCompleted();
+            va_list args;
+            va_start(args, format);
+            vsnprintf(buffer, 1024, format, args);
 
-	protected:
-		bool is_completed_;
-	};
+            SetErrorMessage(buffer);
+
+            va_end(args);
+        }
+    };
+
+    // An abstract SteamAsyncWorker for Steam callback API.
+    class SteamCallbackAsyncWorker : public SteamAsyncWorker
+    {
+      public:
+        SteamCallbackAsyncWorker(Nan::Callback* success_callback,
+                                 Nan::Callback* error_callback);
+
+        void WaitForCompleted();
+
+      protected:
+        bool is_completed_;
+    };
 } // namespace greenworks
 
 #endif // SRC_STEAM_ASYNC_WORKER_H_
-

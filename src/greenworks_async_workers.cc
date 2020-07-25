@@ -326,7 +326,7 @@ namespace greenworks
     {
         if (result->m_eResult != k_EResultOK)
         {
-            SetErrorMessage("Error on storing user stats.");
+            SetErrorMessageEx("Error on storing user stats: %d.", result->m_eResult);
         }
         else
         {

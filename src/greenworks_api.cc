@@ -232,6 +232,35 @@ namespace
         info.GetReturnValue().Set(Nan::Undefined());
     }
 
+    NAN_METHOD(GetFileCount)
+    {
+        Nan::HandleScope scope;
+        info.GetReturnValue().Set(Nan::New<v8::Integer>(SteamRemoteStorage()->GetFileCount()));
+    }
+
+    NAN_METHOD(GetFileNameAndSize)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsNumber())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        int iFile = Nan::To<int32_t>(info[0]).FromJust();
+
+        int32 fileSize;
+
+        const char* fileName = SteamRemoteStorage()->GetFileNameAndSize(iFile, &fileSize);
+
+        v8::Local<v8::Object> fileObject = Nan::New<v8::Object>();
+
+        Nan::Set(fileObject, Nan::New("name").ToLocalChecked(), Nan::New<v8::String>(fileName).ToLocalChecked());
+        Nan::Set(fileObject, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(fileSize));
+
+        info.GetReturnValue().Set(fileObject);
+    }
+
     NAN_METHOD(IsCloudEnabled)
     {
         Nan::HandleScope scope;
@@ -1627,6 +1656,8 @@ namespace
         SET_FUNCTION("runCallbacks", RunCallbacks);
 
         // File APIs.
+        SET_FUNCTION("getFileCount", GetFileCount);
+        SET_FUNCTION("getFileNameAndSize", GetFileNameAndSize);
         SET_FUNCTION("saveTextToFile", SaveTextToFile);
         SET_FUNCTION("readTextFromFile", ReadTextFromFile);
         SET_FUNCTION("saveFilesToCloud", SaveFilesToCloud);
