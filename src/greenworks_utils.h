@@ -12,6 +12,9 @@
 #include "steam/steamtypes.h"
 #include "v8.h"
 
+// 5mb
+#define FILE_BUFFER_SIZE 5000000
+
 namespace utils
 {
 	void InitUgcQueryTypes(v8::Local<v8::Object> exports);
@@ -23,8 +26,6 @@ namespace utils
 	void InitUserUgcList(v8::Local<v8::Object> exports);
 
 	void sleep(int milliseconds);
-
-	bool ReadFile(const char* path, char* & content, int& length);
 
 	bool WriteFile(const std::string& target_path, char* content, int length);
 

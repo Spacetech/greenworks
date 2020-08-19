@@ -12,21 +12,7 @@
 #include "greenworks_utils.h"
 #include "greenworks_zip.h"
 
-namespace
-{
-    struct FilesContentContainer
-    {
-        std::vector<char*> files_content;
-
-        ~FilesContentContainer()
-        {
-            for (size_t i = 0; i < files_content.size(); ++i)
-            {
-                delete[] files_content[i];
-            }
-        }
-    };
-}; // namespace
+#include <fstream>
 
 namespace greenworks
 {
@@ -52,32 +38,53 @@ namespace greenworks
 
     void FilesSaveWorker::Execute()
     {
-        FilesContentContainer container;
-        std::vector<int> files_content_length;
+        char* pBuffer = new char[FILE_BUFFER_SIZE];
+
         for (size_t i = 0; i < files_path_.size(); ++i)
         {
-            char* content = nullptr;
-            int length = 0;
-            if (!utils::ReadFile(files_path_[i].c_str(), content, length))
-                break;
-            container.files_content.push_back(content);
-            files_content_length.push_back(length);
-        }
-        if (container.files_content.size() != files_path_.size())
-        {
-            SetErrorMessage("Error on reading files.");
-            return;
-        }
-        for (size_t i = 0; i < files_path_.size(); ++i)
-        {
-            std::string file_name = utils::GetFileNameFromPath(files_path_[i]);
-            if (!SteamRemoteStorage()->FileWrite(file_name.c_str(),
-                                                 container.files_content[i], files_content_length[i]))
+            auto filePath = files_path_[i];
+
+            std::ifstream fileStream(filePath, std::ios::in | std::ios::binary);
+            if (!fileStream.is_open())
             {
-                SetErrorMessage("Error on writing file on Steam Cloud.");
-                return;
+                SetErrorMessage("Failed to open file (1)");
+                break;
+            }
+
+            std::string file_name = utils::GetFileNameFromPath(files_path_[i]);
+
+            auto remoteFileHandle = SteamRemoteStorage()->FileWriteStreamOpen(file_name.c_str());
+            if (remoteFileHandle == k_UGCFileStreamHandleInvalid)
+            {
+                SetErrorMessage("Failed to open file write stream");
+                break;
+            }
+
+            bool wroteChunk = true;
+
+            while (wroteChunk && !fileStream.eof())
+            {
+                fileStream.read(pBuffer, FILE_BUFFER_SIZE);
+
+                std::streamsize readLength = fileStream.gcount();
+
+                wroteChunk = SteamRemoteStorage()->FileWriteStreamWriteChunk(remoteFileHandle, pBuffer, readLength);
+            }
+
+            if (!wroteChunk)
+            {
+                SetErrorMessage("Failed to write chunk to file stream");
+                break;
+            }
+
+            if (!SteamRemoteStorage()->FileWriteStreamClose(remoteFileHandle))
+            {
+                SetErrorMessage("Failed to close file stream");
+                break;
             }
         }
+
+        delete[] pBuffer;
     }
 
     FileReadWorker::FileReadWorker(Nan::Callback* success_callback,

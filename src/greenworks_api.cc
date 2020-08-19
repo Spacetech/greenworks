@@ -261,6 +261,22 @@ namespace
         info.GetReturnValue().Set(fileObject);
     }
 
+    NAN_METHOD(DeleteRemoteFile)
+    {
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsString())
+        {
+            THROW_BAD_ARGS("Bad arguments");
+        }
+
+        std::string file_name(*(Nan::Utf8String(info[0])));
+
+        bool result = SteamRemoteStorage()->FileDelete(file_name.c_str());
+
+        info.GetReturnValue().Set(Nan::New<v8::Boolean>(result));
+    }
+
     NAN_METHOD(IsCloudEnabled)
     {
         Nan::HandleScope scope;
@@ -1658,6 +1674,7 @@ namespace
         // File APIs.
         SET_FUNCTION("getFileCount", GetFileCount);
         SET_FUNCTION("getFileNameAndSize", GetFileNameAndSize);
+        SET_FUNCTION("deleteRemoteFile", DeleteRemoteFile);
         SET_FUNCTION("saveTextToFile", SaveTextToFile);
         SET_FUNCTION("readTextFromFile", ReadTextFromFile);
         SET_FUNCTION("saveFilesToCloud", SaveFilesToCloud);

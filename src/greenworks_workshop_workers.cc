@@ -5,6 +5,7 @@
 #include "greenworks_workshop_workers.h"
 
 #include <algorithm>
+#include <fstream>
 
 #include "nan.h"
 #include "steam/steam_api.h"
@@ -501,6 +502,8 @@ namespace greenworks
             bool hasItemsToDownload = !ugc_items_to_download.empty();
             if (hasItemsToDownload)
             {
+                // auto targetPath = GetAbsoluteFilePath(result->m_pchFileName, download_dir_);
+                // SteamAPICall_t download_item_result = SteamRemoteStorage()->UGCDownloadToLocation(ugc_items_to_download[current_download_items_pos_].m_hFile, targetPath.c_str(), 0);
                 SteamAPICall_t download_item_result = SteamRemoteStorage()->UGCDownload(ugc_items_to_download[current_download_items_pos_].m_hFile, 0);
                 download_call_result_.Set(download_item_result, this, &SynchronizeItemsWorker::OnDownloadCompleted);
             }
@@ -530,18 +533,32 @@ namespace greenworks
         }
         else if (result->m_eResult == k_EResultOK)
         {
-            std::string target_path = GetAbsoluteFilePath(result->m_pchFileName,
-                                                          download_dir_);
+            std::string target_path = GetAbsoluteFilePath(result->m_pchFileName, download_dir_);
 
-            int file_size_in_bytes = result->m_nSizeInBytes;
-            char* content = new char[file_size_in_bytes];
+            std::ofstream fileStream(target_path.c_str(), std::ios::out | std::ios::binary);
 
-            SteamRemoteStorage()->UGCRead(result->m_hFile,
-                                          content, file_size_in_bytes, 0, k_EUGCRead_Close);
-            bool is_save_success = utils::WriteFile(target_path,
-                                                    content, file_size_in_bytes);
-            delete[] content;
+            int fileSizeInBytes = result->m_nSizeInBytes;
 
+            char* pBuffer = new char[FILE_BUFFER_SIZE];
+
+            int readOffset = 0;
+
+            while (readOffset < fileSizeInBytes)
+            {
+                int bytesRead = SteamRemoteStorage()->UGCRead(result->m_hFile, pBuffer, FILE_BUFFER_SIZE, readOffset, k_EUGCRead_ContinueReadingUntilFinished);
+                if (bytesRead <= 0)
+                {
+                    break;
+                }
+
+                fileStream.write(pBuffer, bytesRead);
+
+                readOffset += bytesRead;
+            }
+
+            delete[] pBuffer;
+
+            bool is_save_success = fileStream.good();
             if (!is_save_success)
             {
                 SetErrorMessage("Error on saving file on local machine.");
