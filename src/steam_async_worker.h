@@ -5,6 +5,7 @@
 #ifndef SRC_STEAM_ASYNC_WORKER_H_
 #define SRC_STEAM_ASYNC_WORKER_H_
 
+#include <stdarg.h>
 #include "nan.h"
 
 namespace greenworks
