@@ -1331,7 +1331,7 @@ namespace
         }
         else
         {
-            double value = info[1].As<v8::Number>()->NumberValue();
+            double value = Nan::To<double>(info[1].As<v8::Number>()).FromJust(); // info[1].As<v8::Number>()->NumberValue();
             info.GetReturnValue().Set(SteamUserStats()->SetStat(name.c_str(), static_cast<float>(value)));
         }
     }
