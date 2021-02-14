@@ -127,13 +127,13 @@
         'WARNING_CFLAGS':  [
           '-Wno-deprecated-declarations',
         ],
-        'OTHER_CPLUSPLUSFLAGS' : [
-          '-std=c++11',
-          '-stdlib=libc++'
-        ],
-        'OTHER_LDFLAGS': [
-          '-stdlib=libc++'
-        ],
+        # 'OTHER_CPLUSPLUSFLAGS' : [
+        #   '-std=c++11',
+        #   '-stdlib=libc++'
+        # ],
+        # 'OTHER_LDFLAGS': [
+        #   '-stdlib=libc++'
+        # ],
       },
       'msvs_disabled_warnings': [
         4068,  # disable unknown pragma warnings from nw.js custom node_buffer.h.
