@@ -16,7 +16,7 @@
 #include "steam_callbacks.h"
 
 #define SET_FUNCTION(function_name, function) \
-    Nan::Set(exports, Nan::New(function_name).ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(function)).ToLocalChecked())
+    Nan::Set(target, Nan::New(function_name).ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(function)).ToLocalChecked())
 
 #define SET_FUNCTION_TPL(function_name, function) \
     Nan::SetMethod(tpl, function_name, function)
@@ -1664,7 +1664,7 @@ namespace
         Nan::Set(exports, Nan::New("networking").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
     }
 
-    void init(v8::Local<v8::Object> exports)
+    NAN_MODULE_INIT(init)
     {
         // Common APIs.
         SET_FUNCTION("initAPI", InitAPI);
@@ -1749,35 +1749,35 @@ namespace
         SET_FUNCTION("onLobbyChatUpdate", OnLobbyChatUpdate);
         SET_FUNCTION("onLobbyJoinRequested", OnLobbyJoinRequested);
 
-        utils::InitUgcMatchingTypes(exports);
-        utils::InitUgcQueryTypes(exports);
-        utils::InitUserUgcListSortOrder(exports);
-        utils::InitUserUgcList(exports);
+        utils::InitUgcMatchingTypes(target);
+        utils::InitUgcQueryTypes(target);
+        utils::InitUserUgcListSortOrder(target);
+        utils::InitUserUgcList(target);
 
         // Utils related APIs.
-        InitUtilsObject(exports);
+        InitUtilsObject(target);
 
         // Networking apis
-        InitNetworkingObject(exports);
+        InitNetworkingObject(target);
     }
 } // namespace
 
 #if defined(_WIN32)
 #if defined(_M_IX86)
-NODE_MODULE(greenworks_win32, init)
+NAN_MODULE_WORKER_ENABLED(greenworks_win32, init)
 #elif defined(_M_AMD64)
-NODE_MODULE(greenworks_win64, init)
+NAN_MODULE_WORKER_ENABLED(greenworks_win64, init)
 #endif
 #elif defined(__APPLE__)
 #if defined(__x86_64__) || defined(__ppc64__)
-NODE_MODULE(greenworks_osx64, init)
+NAN_MODULE_WORKER_ENABLED(greenworks_osx64, init)
 #else
-NODE_MODULE(greenworks_osx32, init)
+NAN_MODULE_WORKER_ENABLED(greenworks_osx32, init)
 #endif
 #elif defined(__linux__)
 #if defined(__x86_64__) || defined(__ppc64__)
-NODE_MODULE(greenworks_linux64, init)
+NAN_MODULE_WORKER_ENABLED(greenworks_linux64, init)
 #else
-NODE_MODULE(greenworks_linux32, init)
+NAN_MODULE_WORKER_ENABLED(greenworks_linux32, init)
 #endif
 #endif
