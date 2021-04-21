@@ -1,3 +1,5 @@
+https://chromium.googlesource.com/chromium/src/third_party/zlib/
+
 ##New Release 0.4
 The newest release enables compatibility with node v0.11.x and v0.12.x, NW.js v0.12.X and Electron v0.21.X. If you find the release useful, please consider donating.
 

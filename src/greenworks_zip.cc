@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-#include "zlib/zlib.h"
-#include "zlib/contrib/minizip/zip.h"
+#include "third_party/zlib/zlib.h"
+#include "third_party/zlib/contrib/minizip/zip.h"
 
 #ifndef _WIN32
 #ifndef __USE_FILE_OFFSET64
@@ -55,7 +55,7 @@
 
 #ifdef _WIN32
 #define USEWIN32IOAPI
-#include "zlib/contrib/minizip/iowin32.h"
+#include "third_party/zlib/contrib/minizip/iowin32.h"
 #endif
 
 #define WRITEBUFFERSIZE (16384)

@@ -91,7 +91,7 @@
         '<(steamworks_sdk_dir)/public',
         '<!(node -e "require(\'nan\')")'
       ],
-      'dependencies': [ 'deps/zlib/zlib.gyp:minizip' ],
+      'dependencies': [ 'deps/third_party/zlib/zlib.gyp:minizip' ],
       'link_settings': {
         'libraries': [
           '<(source_root_dir)/<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)'
