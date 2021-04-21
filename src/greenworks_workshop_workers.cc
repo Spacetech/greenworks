@@ -489,7 +489,7 @@ namespace greenworks
 
                 // If the file is not existed or last update time is not equal to Steam,
                 // download it.
-                utils::DebugLog("current time: %d, item time: %d\n", file_update_time, item.m_rtimeUpdated);
+                utils::DebugLog("%s. file modified time: %d. steamworks item updated time: %d\n", target_path.c_str(), file_update_time, item.m_rtimeUpdated);
 
                 if (file_update_time == -1 || file_update_time != item.m_rtimeUpdated)
                 {
@@ -558,6 +558,9 @@ namespace greenworks
 
             delete[] pBuffer;
 
+            // flush before checking the status
+            fileStream.flush();
+
             bool is_save_success = fileStream.good();
             if (!is_save_success)
             {
@@ -565,6 +568,9 @@ namespace greenworks
                 is_completed_ = true;
                 return;
             }
+
+            // close the stream now so we can update the modified time
+            fileStream.close();
 
             int64 file_updated_time = ugc_items_to_download[current_download_items_pos_].m_rtimeUpdated;
             if (!utils::UpdateFileLastUpdatedTime(target_path.c_str(), static_cast<time_t>(file_updated_time)))

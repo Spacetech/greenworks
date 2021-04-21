@@ -10,6 +10,8 @@
 #include "nan.h"
 #include "steam/steam_api.h"
 
+#include <stdio.h>
+
 #if defined(_WIN32)
 #include <sys/utime.h>
 #include <windows.h>
@@ -156,7 +158,7 @@ namespace utils
 
 	bool UpdateFileLastUpdatedTime(const char* file_path, time_t time)
 	{
-		DebugLog("UpdateFileLastUpdatedTime: %d\n", time);
+		DebugLog("Setting file last modified time for %s to %d\n", file_path, time);
 
 		utimbuf utime_buf;
 		utime_buf.actime = time;
