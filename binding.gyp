@@ -97,7 +97,7 @@
           '<(source_root_dir)/<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)'
         ]
       },
-      'cflags': [ '-std=c++11', '-Wno-deprecated-declarations' ],
+      'cflags': [ '-std=c++14', '-Wno-deprecated-declarations' ],
       'conditions': [
         ['OS== "linux"',
           {
@@ -123,6 +123,19 @@
           ],
         }],
       ],
+      # "msvs_settings": {
+      #   "VCLinkerTool": {
+      #     "ImageHasSafeExceptionHandlers": "false",
+      #     # 'AdditionalOptions': [ '/NODEFAULTLIB:library' ],
+      #   },
+      #       'VCCLCompilerTool': {
+      #       # 0 - MultiThreaded (/MT)
+      #       # 1 - MultiThreadedDebug (/MTd)
+      #       # 2 - MultiThreadedDLL (/MD)
+      #       # 3 - MultiThreadedDebugDLL (/MDd)
+      #       'RuntimeLibrary': 2,
+      #     }
+      # },
       'xcode_settings': {
         'WARNING_CFLAGS':  [
           '-Wno-deprecated-declarations',
@@ -138,6 +151,7 @@
       'msvs_disabled_warnings': [
         4068,  # disable unknown pragma warnings from nw.js custom node_buffer.h.
         4267,  # conversion from 'size_t' to 'int', popssible loss of data
+        4996, # deprecated warnings
       ],
     },
     {
