@@ -6,6 +6,8 @@
 
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <thread>
 
 #include "napi.h"
 #include "steam/steam_api.h"
@@ -93,11 +95,7 @@ namespace utils
 
     void sleep(int milliseconds)
     {
-#if defined(_WIN32)
-        Sleep(milliseconds);
-#else
-        usleep(milliseconds * 1000);
-#endif
+		std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
     }
 
     bool WriteFile(const std::string& target_path, char* content, int length)
