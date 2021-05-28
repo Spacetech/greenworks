@@ -7,60 +7,54 @@
 #include <algorithm>
 #include <fstream>
 
-#include "nan.h"
+#include "napi.h"
 #include "steam/steam_api.h"
+#include "uv.h"
 #include "v8.h"
 
 #include "greenworks_utils.h"
 
 namespace
 {
-    v8::Local<v8::Object> ConvertToJsObject(const SteamUGCDetails_t& item)
+    Napi::Object ConvertToJsObject(Napi::Env env, const SteamUGCDetails_t& item)
     {
-        v8::Local<v8::Object> result = Nan::New<v8::Object>();
+        Napi::Object result = Napi::Object::New(env);
 
-        Nan::Set(result, Nan::New("acceptedForUse").ToLocalChecked(), Nan::New(item.m_bAcceptedForUse));
-        Nan::Set(result, Nan::New("banned").ToLocalChecked(), Nan::New(item.m_bBanned));
-        Nan::Set(result, Nan::New("tagsTruncated").ToLocalChecked(), Nan::New(item.m_bTagsTruncated));
-        Nan::Set(result, Nan::New("fileType").ToLocalChecked(), Nan::New(item.m_eFileType));
-        Nan::Set(result, Nan::New("result").ToLocalChecked(), Nan::New(item.m_eResult));
-        Nan::Set(result, Nan::New("visibility").ToLocalChecked(), Nan::New(item.m_eVisibility));
-        Nan::Set(result, Nan::New("score").ToLocalChecked(), Nan::New(item.m_flScore));
+        (result).Set("acceptedForUse", Napi::Boolean::New(env, item.m_bAcceptedForUse));
+        (result).Set("banned", Napi::Boolean::New(env, item.m_bBanned));
+        (result).Set("tagsTruncated", Napi::Boolean::New(env, item.m_bTagsTruncated));
+        (result).Set("fileType", Napi::Number::New(env, item.m_eFileType));
+        (result).Set("result", Napi::Number::New(env, item.m_eResult));
+        (result).Set("visibility", Napi::Number::New(env, item.m_eVisibility));
+        (result).Set("score", Napi::Number::New(env, item.m_flScore));
 
-        Nan::Set(result, Nan::New("file").ToLocalChecked(),
-                 Nan::New<v8::String>(utils::uint64ToString(item.m_hFile)).ToLocalChecked());
-        Nan::Set(result, Nan::New("fileName").ToLocalChecked(), Nan::New(item.m_pchFileName).ToLocalChecked());
-        Nan::Set(result, Nan::New("fileSize").ToLocalChecked(), Nan::New(item.m_nFileSize));
+        (result).Set("file", Napi::String::New(env, utils::uint64ToString(item.m_hFile)));
+        (result).Set("fileName", Napi::String::New(env, item.m_pchFileName));
+        (result).Set("fileSize", Napi::Number::New(env, item.m_nFileSize));
 
-        Nan::Set(result, Nan::New("previewFile").ToLocalChecked(),
-                 Nan::New<v8::String>(utils::uint64ToString(item.m_hPreviewFile)).ToLocalChecked());
-        Nan::Set(result, Nan::New("previewFileSize").ToLocalChecked(), Nan::New(item.m_nPreviewFileSize));
+        (result).Set("previewFile", Napi::String::New(env, utils::uint64ToString(item.m_hPreviewFile)));
+        (result).Set("previewFileSize", Napi::Number::New(env, item.m_nPreviewFileSize));
 
-        Nan::Set(result, Nan::New("steamIDOwner").ToLocalChecked(),
-                 Nan::New<v8::String>(utils::uint64ToString(item.m_ulSteamIDOwner)).ToLocalChecked());
-        Nan::Set(result, Nan::New("consumerAppID").ToLocalChecked(), Nan::New(item.m_nConsumerAppID));
-        Nan::Set(result, Nan::New("creatorAppID").ToLocalChecked(), Nan::New(item.m_nCreatorAppID));
-        Nan::Set(result, Nan::New("publishedFileId").ToLocalChecked(),
-                 Nan::New<v8::String>(utils::uint64ToString(
-                                          item.m_nPublishedFileId))
-                     .ToLocalChecked());
+        (result).Set("steamIDOwner", Napi::String::New(env, utils::uint64ToString(item.m_ulSteamIDOwner)));
+        (result).Set("consumerAppID", Napi::Number::New(env, item.m_nConsumerAppID));
+        (result).Set("creatorAppID", Napi::Number::New(env, item.m_nCreatorAppID));
+        (result).Set("publishedFileId", Napi::String::New(env, utils::uint64ToString(item.m_nPublishedFileId)));
 
-        Nan::Set(result, Nan::New("title").ToLocalChecked(), Nan::New(item.m_rgchTitle).ToLocalChecked());
-        Nan::Set(result, Nan::New("description").ToLocalChecked(), Nan::New(item.m_rgchDescription).ToLocalChecked());
-        Nan::Set(result, Nan::New("URL").ToLocalChecked(), Nan::New(item.m_rgchURL).ToLocalChecked());
-        Nan::Set(result, Nan::New("tags").ToLocalChecked(), Nan::New(item.m_rgchTags).ToLocalChecked());
+        (result).Set("title", Napi::String::New(env, item.m_rgchTitle));
+        (result).Set("description", Napi::String::New(env, item.m_rgchDescription));
+        (result).Set("URL", Napi::String::New(env, item.m_rgchURL));
+        (result).Set("tags", Napi::String::New(env, item.m_rgchTags));
 
-        Nan::Set(result, Nan::New("timeAddedToUserList").ToLocalChecked(), Nan::New(item.m_rtimeAddedToUserList));
-        Nan::Set(result, Nan::New("timeCreated").ToLocalChecked(), Nan::New(item.m_rtimeCreated));
-        Nan::Set(result, Nan::New("timeUpdated").ToLocalChecked(), Nan::New(item.m_rtimeUpdated));
-        Nan::Set(result, Nan::New("votesDown").ToLocalChecked(), Nan::New(item.m_unVotesDown));
-        Nan::Set(result, Nan::New("votesUp").ToLocalChecked(), Nan::New(item.m_unVotesUp));
+        (result).Set("timeAddedToUserList", Napi::Number::New(env, item.m_rtimeAddedToUserList));
+        (result).Set("timeCreated", Napi::Number::New(env, item.m_rtimeCreated));
+        (result).Set("timeUpdated", Napi::Number::New(env, item.m_rtimeUpdated));
+        (result).Set("votesDown", Napi::Number::New(env, item.m_unVotesDown));
+        (result).Set("votesUp", Napi::Number::New(env, item.m_unVotesUp));
 
         return result;
     }
 
-    inline std::string GetAbsoluteFilePath(const std::string& file_path,
-                                           const std::string& download_dir)
+    inline std::string GetAbsoluteFilePath(const std::string& file_path, const std::string& download_dir)
     {
         std::string file_name = file_path.substr(file_path.find_last_of("/\\") + 1);
         return download_dir + "/" + file_name;
@@ -69,9 +63,8 @@ namespace
 
 namespace greenworks
 {
-    FileShareWorker::FileShareWorker(Nan::Callback* success_callback,
-                                     Nan::Callback* error_callback, const std::string& file_path)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
+    FileShareWorker::FileShareWorker(Napi::Function& callback, const std::string& file_path)
+        : SteamCallbackAsyncWorker(callback),
           file_path_(file_path)
     {
         share_file_handle_ = k_UGCHandleInvalid;
@@ -87,7 +80,7 @@ namespace greenworks
 
         if (!SteamRemoteStorage()->FileExists(file_name.c_str()))
         {
-            SetErrorMessage("File doesn't exist in remote storage");
+            SetError("File doesn't exist in remote storage");
             return;
         }
 
@@ -104,7 +97,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage("Error on sharing file: Steam API IO Failure");
+            SetError("Error on sharing file: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
         {
@@ -112,26 +105,21 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessageEx("Error on sharing file on Steam cloud: %s -> %s, %d", file_path_.c_str(), utils::GetFileNameFromPath(file_path_).c_str(), result->m_eResult);
+            SetErrorEx("Error on sharing file on Steam cloud %s, %s, %d", file_path_.c_str(), utils::GetFileNameFromPath(file_path_).c_str(), result->m_eResult);
         }
         is_completed_ = true;
     }
 
-    void FileShareWorker::HandleOKCallback()
+    void FileShareWorker::OnOK()
     {
-        Nan::HandleScope scope;
-
-        v8::Local<v8::Value> argv[] = {Nan::New<v8::String>(
-                                           utils::uint64ToString(share_file_handle_))
-                                           .ToLocalChecked()};
-        callback->Call(1, argv);
+        Callback().Call({Env().Null(), Napi::String::New(Env(), utils::uint64ToString(share_file_handle_))});
     }
 
     PublishWorkshopFileWorker::PublishWorkshopFileWorker(
-        Nan::Callback* success_callback, Nan::Callback* error_callback,
+        Napi::Function& callback,
         const std::string& file_path, const std::string& image_path,
         const std::string& title, const std::string& description,
-        const std::vector<std::string>& tags) : SteamCallbackAsyncWorker(success_callback, error_callback),
+        const std::vector<std::string>& tags) : SteamCallbackAsyncWorker(callback),
                                                 file_path_(file_path),
                                                 image_path_(image_path),
                                                 title_(title),
@@ -184,7 +172,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage("Error on publishing workshop file: Steam API IO Failure");
+            SetError("Error on publishing workshop file: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
         {
@@ -192,27 +180,22 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessageEx("Error on publishing workshop file: %d", result->m_eResult);
+            SetErrorEx("Error on publishing workshop file %d", result->m_eResult);
         }
         is_completed_ = true;
     }
 
-    void PublishWorkshopFileWorker::HandleOKCallback()
+    void PublishWorkshopFileWorker::OnOK()
     {
-        Nan::HandleScope scope;
-
-        v8::Local<v8::Value> argv[] = {Nan::New<v8::String>(
-                                           utils::uint64ToString(publish_file_id_))
-                                           .ToLocalChecked()};
-        callback->Call(1, argv);
+        Callback().Call({Env().Null(), Napi::String::New(Env(), utils::uint64ToString(publish_file_id_))});
     }
 
     UpdatePublishedWorkshopFileWorker::UpdatePublishedWorkshopFileWorker(
-        Nan::Callback* success_callback, Nan::Callback* error_callback,
+        Napi::Function& callback,
         PublishedFileId_t published_file_id, const std::string& file_path,
         const std::string& image_path, const std::string& title,
         const std::string& description,
-        const std::vector<std::string>& tags) : SteamCallbackAsyncWorker(success_callback, error_callback),
+        const std::vector<std::string>& tags) : SteamCallbackAsyncWorker(callback),
                                                 published_file_id_(published_file_id),
                                                 file_path_(file_path),
                                                 image_path_(image_path),
@@ -280,7 +263,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage(
+            SetError(
                 "Error on committing published file update: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
@@ -288,35 +271,33 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessageEx("Error on getting published file details: %d", result->m_eResult);
+            SetErrorEx("Error on getting published file details %d", result->m_eResult);
         }
+
         is_completed_ = true;
     }
 
-    QueryUGCWorker::QueryUGCWorker(Nan::Callback* success_callback,
-                                   Nan::Callback* error_callback, EUGCMatchingUGCType ugc_matching_type)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
+    QueryUGCWorker::QueryUGCWorker(Napi::Function& callback,
+                                   EUGCMatchingUGCType ugc_matching_type)
+        : SteamCallbackAsyncWorker(callback),
           ugc_matching_type_(ugc_matching_type)
     {
     }
 
-    void QueryUGCWorker::HandleOKCallback()
+    void QueryUGCWorker::OnOK()
     {
-        Nan::HandleScope scope;
-
-        v8::Local<v8::Array> items = Nan::New<v8::Array>(
-            static_cast<int>(ugc_items_.size()));
+        Napi::Array items = Napi::Array::New(Env(), static_cast<int>(ugc_items_.size()));
         for (uint32_t i = 0; i < ugc_items_.size(); ++i)
-            Nan::Set(items, i, ConvertToJsObject(ugc_items_[i]));
-        v8::Local<v8::Value> argv[] = {items};
-        callback->Call(1, argv);
+            (items).Set(i, ConvertToJsObject(Env(), ugc_items_[i]));
+
+        Callback().Call({Env().Null(), items});
     }
 
     void QueryUGCWorker::OnUGCQueryCompleted(SteamUGCQueryCompleted_t* result, bool io_failure)
     {
         if (io_failure)
         {
-            SetErrorMessage("Error on querying all ugc: Steam API IO Failure");
+            SetError("Error on querying all ugc: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
         {
@@ -332,16 +313,16 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessageEx("Error on querying ugc: %d", result->m_eResult);
+            SetErrorEx("Error on querying ugc %d", result->m_eResult);
         }
 
         is_completed_ = true;
     }
 
-    QueryAllUGCWorker::QueryAllUGCWorker(Nan::Callback* success_callback,
-                                         Nan::Callback* error_callback, EUGCMatchingUGCType ugc_matching_type,
+    QueryAllUGCWorker::QueryAllUGCWorker(Napi::Function& callback,
+                                         EUGCMatchingUGCType ugc_matching_type,
                                          EUGCQuery ugc_query_type)
-        : QueryUGCWorker(success_callback, error_callback, ugc_matching_type),
+        : QueryUGCWorker(callback, ugc_matching_type),
           ugc_query_type_(ugc_query_type)
     {
     }
@@ -363,10 +344,10 @@ namespace greenworks
         WaitForCompleted();
     }
 
-    QueryUserUGCWorker::QueryUserUGCWorker(Nan::Callback* success_callback,
-                                           Nan::Callback* error_callback, EUGCMatchingUGCType ugc_matching_type,
+    QueryUserUGCWorker::QueryUserUGCWorker(Napi::Function& callback,
+                                           EUGCMatchingUGCType ugc_matching_type,
                                            EUserUGCList ugc_list, EUserUGCListSortOrder ugc_list_sort_order)
-        : QueryUGCWorker(success_callback, error_callback, ugc_matching_type),
+        : QueryUGCWorker(callback, ugc_matching_type),
           ugc_list_(ugc_list),
           ugc_list_sort_order_(ugc_list_sort_order)
     {
@@ -392,10 +373,10 @@ namespace greenworks
         WaitForCompleted();
     }
 
-    DownloadItemWorker::DownloadItemWorker(Nan::Callback* success_callback,
-                                           Nan::Callback* error_callback, UGCHandle_t download_file_handle,
+    DownloadItemWorker::DownloadItemWorker(Napi::Function& callback,
+                                           UGCHandle_t download_file_handle,
                                            const std::string& download_dir)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
+        : SteamCallbackAsyncWorker(callback),
           download_file_handle_(download_file_handle),
           download_dir_(download_dir)
     {
@@ -415,7 +396,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage(
+            SetError(
                 "Error on downloading file: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
@@ -430,21 +411,21 @@ namespace greenworks
                                           content, file_size_in_bytes, 0, k_EUGCRead_Close);
             if (!utils::WriteFile(target_path, content, file_size_in_bytes))
             {
-                SetErrorMessage("Error on saving file on local machine.");
+                SetError("Error on saving file on local machine.");
             }
 
             delete[] content;
         }
         else
         {
-            SetErrorMessageEx("Error on downloading file: %d", result->m_eResult);
+            SetErrorEx("Error on downloading file %d", result->m_eResult);
         }
         is_completed_ = true;
     }
 
-    SynchronizeItemsWorker::SynchronizeItemsWorker(Nan::Callback* success_callback,
-                                                   Nan::Callback* error_callback, const std::string& download_dir)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
+    SynchronizeItemsWorker::SynchronizeItemsWorker(Napi::Function& callback,
+                                                   const std::string& download_dir)
+        : SteamCallbackAsyncWorker(callback),
           current_download_items_pos_(0),
           download_dir_(download_dir)
     {
@@ -473,7 +454,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage("Error on querying all ugc: Steam API IO Failure");
+            SetError("Error on querying all ugc: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
         {
@@ -518,7 +499,7 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessageEx("Error on querying ugc: %d", result->m_eResult);
+            SetErrorEx("Error on querying ugc %d", result->m_eResult);
         }
 
         is_completed_ = true;
@@ -528,7 +509,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage(
+            SetError(
                 "Error on downloading file: Steam API IO Failure");
         }
         else if (result->m_eResult == k_EResultOK)
@@ -564,7 +545,7 @@ namespace greenworks
             bool is_save_success = fileStream.good();
             if (!is_save_success)
             {
-                SetErrorMessage("Error on saving file on local machine.");
+                SetError("Error on saving file on local machine.");
                 is_completed_ = true;
                 return;
             }
@@ -575,7 +556,7 @@ namespace greenworks
             int64 file_updated_time = ugc_items_to_download[current_download_items_pos_].m_rtimeUpdated;
             if (!utils::UpdateFileLastUpdatedTime(target_path.c_str(), static_cast<time_t>(file_updated_time)))
             {
-                SetErrorMessage("Error on update file time on local machine.");
+                SetError("Error on update file time on local machine.");
                 is_completed_ = true;
                 return;
             }
@@ -590,33 +571,31 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessageEx("Error on downloading file: %d", result->m_eResult);
+            SetErrorEx("Error on downloading file %d", result->m_eResult);
         }
         is_completed_ = true;
     }
 
-    void SynchronizeItemsWorker::HandleOKCallback()
+    void SynchronizeItemsWorker::OnOK()
     {
-        Nan::HandleScope scope;
-
-        v8::Local<v8::Array> items = Nan::New<v8::Array>(static_cast<int>(ugc_items_.size()));
+        Napi::Array items = Napi::Array::New(Env(), static_cast<int>(ugc_items_.size()));
 
         for (uint32_t i = 0; i < ugc_items_.size(); ++i)
         {
-            v8::Local<v8::Object> item = ConvertToJsObject(ugc_items_[i]);
-            bool is_updated = std::find_if(ugc_items_to_download.begin(), ugc_items_to_download.end(), [&](SteamUGCDetails_t const& item) { return item.m_hFile == ugc_items_[i].m_hFile; }) != ugc_items_to_download.end();
-            Nan::Set(item, Nan::New("isUpdated").ToLocalChecked(), Nan::New(is_updated));
-            Nan::Set(items, i, item);
+            Napi::Object item = ConvertToJsObject(Env(), ugc_items_[i]);
+            bool is_updated = std::find_if(ugc_items_to_download.begin(), ugc_items_to_download.end(), [&](SteamUGCDetails_t const& item)
+                                           { return item.m_hFile == ugc_items_[i].m_hFile; }) != ugc_items_to_download.end();
+            (item).Set("isUpdated", Napi::Boolean::New(Env(), is_updated));
+            (items).Set(i, item);
         }
 
-        v8::Local<v8::Value> argv[] = {items};
-        callback->Call(1, argv);
+        Callback().Call({Env().Null(), items});
     }
 
     UnsubscribePublishedFileWorker::UnsubscribePublishedFileWorker(
-        Nan::Callback* success_callback, Nan::Callback* error_callback,
+        Napi::Function& callback,
         PublishedFileId_t unsubscribe_file_id)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
+        : SteamCallbackAsyncWorker(callback),
           unsubscribe_file_id_(unsubscribe_file_id)
     {
     }

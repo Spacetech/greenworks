@@ -17,8 +17,7 @@ namespace greenworks
     class FileContentSaveWorker : public SteamAsyncWorker
     {
       public:
-        FileContentSaveWorker(Nan::Callback* success_callback,
-                              Nan::Callback* error_callback, std::string file_name, std::string content);
+        FileContentSaveWorker(Napi::Function& callback, std::string file_name, std::string content);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
@@ -31,8 +30,7 @@ namespace greenworks
     class FilesSaveWorker : public SteamAsyncWorker
     {
       public:
-        FilesSaveWorker(Nan::Callback* success_callback, Nan::Callback* error_callback,
-                        const std::vector<std::string>& files_path);
+        FilesSaveWorker(Napi::Function& callback, const std::vector<std::string>& files_path);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
@@ -44,12 +42,11 @@ namespace greenworks
     class FileReadWorker : public SteamAsyncWorker
     {
       public:
-        FileReadWorker(Nan::Callback* success_callback, Nan::Callback* error_callback,
-                       std::string file_name);
+        FileReadWorker(Napi::Function& callback, std::string file_name);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
-        virtual void HandleOKCallback() override;
+        virtual void OnOK() override;
 
       private:
         std::string file_name_;
@@ -59,12 +56,11 @@ namespace greenworks
     class CloudQuotaGetWorker : public SteamAsyncWorker
     {
       public:
-        CloudQuotaGetWorker(Nan::Callback* success_callback,
-                            Nan::Callback* error_callback);
+        CloudQuotaGetWorker(Napi::Function& callback);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
-        virtual void HandleOKCallback() override;
+        virtual void OnOK() override;
 
       private:
         uint64 total_bytes_;
@@ -74,8 +70,7 @@ namespace greenworks
     class ActivateAchievementWorker : public SteamAsyncWorker
     {
       public:
-        ActivateAchievementWorker(Nan::Callback* success_callback,
-                                  Nan::Callback* error_callback, const std::string& achievement);
+        ActivateAchievementWorker(Napi::Function& callback, const std::string& achievement);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
@@ -87,13 +82,11 @@ namespace greenworks
     class GetAchievementWorker : public SteamAsyncWorker
     {
       public:
-        GetAchievementWorker(Nan::Callback* success_callback,
-                             Nan::Callback* error_callback,
-                             const std::string& achievement);
+        GetAchievementWorker(Napi::Function& callback, const std::string& achievement);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
-        virtual void HandleOKCallback() override;
+        virtual void OnOK() override;
 
       private:
         std::string achievement_;
@@ -103,13 +96,11 @@ namespace greenworks
     class ClearAchievementWorker : public SteamAsyncWorker
     {
       public:
-        ClearAchievementWorker(Nan::Callback* success_callback,
-                               Nan::Callback* error_callback,
-                               const std::string& achievement);
+        ClearAchievementWorker(Napi::Function& callback, const std::string& achievement);
 
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
-        virtual void HandleOKCallback() override;
+        virtual void OnOK() override;
 
       private:
         std::string achievement_;
@@ -119,13 +110,12 @@ namespace greenworks
     class GetNumberOfPlayersWorker : public SteamCallbackAsyncWorker
     {
       public:
-        GetNumberOfPlayersWorker(Nan::Callback* success_callback,
-                                 Nan::Callback* error_callback);
+        GetNumberOfPlayersWorker(Napi::Function& callback);
         void OnGetNumberOfPlayersCompleted(NumberOfCurrentPlayers_t* result,
                                            bool io_failure);
         // Override NanAsyncWorker methods.
         virtual void Execute() override;
-        virtual void HandleOKCallback() override;
+        virtual void OnOK() override;
 
       private:
         int num_of_players_;
@@ -135,8 +125,7 @@ namespace greenworks
     class CreateArchiveWorker : public SteamAsyncWorker
     {
       public:
-        CreateArchiveWorker(Nan::Callback* success_callback,
-                            Nan::Callback* error_callback,
+        CreateArchiveWorker(Napi::Function& callback,
                             const std::string& zip_file_path,
                             const std::string& source_dir,
                             const std::string& password,
@@ -155,8 +144,7 @@ namespace greenworks
     class ExtractArchiveWorker : public SteamAsyncWorker
     {
       public:
-        ExtractArchiveWorker(Nan::Callback* success_callback,
-                             Nan::Callback* error_callback,
+        ExtractArchiveWorker(Napi::Function& callback,
                              const std::string& zip_file_path,
                              const std::string& extract_path,
                              const std::string& password);
@@ -173,7 +161,7 @@ namespace greenworks
     class StoreUserStatsWorker : public SteamCallbackAsyncWorker
     {
       public:
-        StoreUserStatsWorker(Nan::Callback* success_callback, Nan::Callback* error_callback);
+        StoreUserStatsWorker(Napi::Function& callback);
         STEAM_CALLBACK(StoreUserStatsWorker,
                        OnUserStatsStored,
                        UserStatsStored_t,
@@ -181,7 +169,7 @@ namespace greenworks
 
         // Override NanAsyncWorker methods.
         void Execute() override;
-        void HandleOKCallback() override;
+        void OnOK() override;
 
       private:
         uint64 game_id_;

@@ -14,7 +14,7 @@ Remove-Item $root\lib -Force -Recurse -ErrorAction SilentlyContinue
 
 # npm install -g node-gyp
 
-# npm ci --ignore-scripts
+npm ci --ignore-scripts
 
 if (-not $Only64Bit) {
     node-gyp rebuild --target=$version --arch=ia32 --dist-url=https://atom.io/download/electron

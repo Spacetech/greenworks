@@ -6,8 +6,9 @@
 #include <string>
 #include <vector>
 
-#include "nan.h"
+#include "napi.h"
 #include "steam/steam_api.h"
+#include "uv.h"
 #include "v8.h"
 
 #include "greenworks_async_workers.h"
@@ -15,26 +16,22 @@
 #include "greenworks_workshop_workers.h"
 #include "steam_callbacks.h"
 
+#define THROW_BAD_ARGS(msg) \
+    Napi::Error::New(env, msg).ThrowAsJavaScriptException()
+
 #define SET_FUNCTION(function_name, function) \
-    Nan::Set(target, Nan::New(function_name).ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(function)).ToLocalChecked())
+    exports.Set(function_name, Napi::Function::New(env, function))
 
 #define SET_FUNCTION_TPL(function_name, function) \
-    Nan::SetMethod(tpl, function_name, function)
+    tpl.Set(function_name, Napi::Function::New(env, function))
 
 greenworks::SteamCallbacks* steamCallbacks = nullptr;
 
 namespace
 {
-#define THROW_BAD_ARGS(msg)       \
-    do                            \
-    {                             \
-        Nan::ThrowTypeError(msg); \
-        return;                   \
-    } while (0);
-
-    v8::Local<v8::Object> GetSteamUserCountType(int type_id)
+    Napi::Object GetSteamUserCountType(Napi::Env env, int type_id)
     {
-        v8::Local<v8::Object> account_type = Nan::New<v8::Object>();
+        Napi::Object account_type = Napi::Object::New(env);
         std::string name;
         switch (type_id)
         {
@@ -75,14 +72,14 @@ namespace
             name = "k_EAccountTypePending";
             break;
         }
-        Nan::Set(account_type, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
-        Nan::Set(account_type, Nan::New("value").ToLocalChecked(), Nan::New(type_id));
+        (account_type).Set("name", Napi::String::New(env, name));
+        (account_type).Set("value", Napi::Number::New(env, type_id));
         return account_type;
     }
 
-    NAN_METHOD(InitAPI)
+    Napi::Value InitAPI(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         bool success = SteamAPI_Init();
 
@@ -99,313 +96,243 @@ namespace
             }
         }
 
-        info.GetReturnValue().Set(Nan::New(success));
+        return Napi::Boolean::New(env, success);
     }
 
-    NAN_METHOD(GetSteamId)
+    Napi::Value GetSteamId(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
         CSteamID user_id = SteamUser()->GetSteamID();
-        v8::Local<v8::Object> flags = Nan::New<v8::Object>();
-        Nan::Set(flags, Nan::New("anonymous").ToLocalChecked(), Nan::New(user_id.BAnonAccount()));
-        Nan::Set(flags, Nan::New("anonymousGameServer").ToLocalChecked(),
-                 Nan::New(user_id.BAnonGameServerAccount()));
-        Nan::Set(flags, Nan::New("anonymousGameServerLogin").ToLocalChecked(),
-                 Nan::New(user_id.BBlankAnonAccount()));
-        Nan::Set(flags, Nan::New("anonymousUser").ToLocalChecked(), Nan::New(user_id.BAnonUserAccount()));
-        Nan::Set(flags, Nan::New("chat").ToLocalChecked(), Nan::New(user_id.BChatAccount()));
-        Nan::Set(flags, Nan::New("clan").ToLocalChecked(), Nan::New(user_id.BClanAccount()));
-        Nan::Set(flags, Nan::New("consoleUser").ToLocalChecked(), Nan::New(user_id.BConsoleUserAccount()));
-        Nan::Set(flags, Nan::New("contentServer").ToLocalChecked(), Nan::New(user_id.BContentServerAccount()));
-        Nan::Set(flags, Nan::New("gameServer").ToLocalChecked(), Nan::New(user_id.BGameServerAccount()));
-        Nan::Set(flags, Nan::New("individual").ToLocalChecked(), Nan::New(user_id.BIndividualAccount()));
-        Nan::Set(flags, Nan::New("gameServerPersistent").ToLocalChecked(), Nan::New(user_id.BPersistentGameServerAccount()));
-        Nan::Set(flags, Nan::New("lobby").ToLocalChecked(), Nan::New(user_id.IsLobby()));
+        Napi::Object flags = Napi::Object::New(env);
+        (flags).Set("anonymous", Napi::Boolean::New(env, user_id.BAnonAccount()));
+        (flags).Set("anonymousGameServer",
+                    Napi::Boolean::New(env, user_id.BAnonGameServerAccount()));
+        (flags).Set("anonymousGameServerLogin",
+                    Napi::Boolean::New(env, user_id.BBlankAnonAccount()));
+        (flags).Set("anonymousUser", Napi::Boolean::New(env, user_id.BAnonUserAccount()));
+        (flags).Set("chat", Napi::Boolean::New(env, user_id.BChatAccount()));
+        (flags).Set("clan", Napi::Boolean::New(env, user_id.BClanAccount()));
+        (flags).Set("consoleUser", Napi::Boolean::New(env, user_id.BConsoleUserAccount()));
+        (flags).Set("contentServer", Napi::Boolean::New(env, user_id.BContentServerAccount()));
+        (flags).Set("gameServer", Napi::Boolean::New(env, user_id.BGameServerAccount()));
+        (flags).Set("individual", Napi::Boolean::New(env, user_id.BIndividualAccount()));
+        (flags).Set("gameServerPersistent", Napi::Boolean::New(env, user_id.BPersistentGameServerAccount()));
+        (flags).Set("lobby", Napi::Boolean::New(env, user_id.IsLobby()));
 
-        v8::Local<v8::Object> result = Nan::New<v8::Object>();
-        Nan::Set(result, Nan::New("flags").ToLocalChecked(), flags);
-        Nan::Set(result, Nan::New("type").ToLocalChecked(), GetSteamUserCountType(user_id.GetEAccountType()));
-        Nan::Set(result, Nan::New("accountId").ToLocalChecked(), Nan::New<v8::Integer>(user_id.GetAccountID()));
-        Nan::Set(result, Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(user_id.GetStaticAccountKey())).ToLocalChecked());
-        Nan::Set(result, Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(user_id.ConvertToUint64())).ToLocalChecked());
-        Nan::Set(result, Nan::New("isValid").ToLocalChecked(), Nan::New<v8::Integer>(user_id.IsValid()));
-        Nan::Set(result, Nan::New("level").ToLocalChecked(), Nan::New<v8::Integer>(SteamUser()->GetPlayerSteamLevel()));
+        Napi::Object result = Napi::Object::New(env);
+        (result).Set("flags", flags);
+        (result).Set("type", GetSteamUserCountType(env, user_id.GetEAccountType()));
+        (result).Set("accountId", Napi::Number::New(env, user_id.GetAccountID()));
+        (result).Set("staticAccountId", Napi::String::New(env, utils::uint64ToString(user_id.GetStaticAccountKey())));
+        (result).Set("steamId", Napi::String::New(env, utils::uint64ToString(user_id.ConvertToUint64())));
+        (result).Set("isValid", Napi::Number::New(env, user_id.IsValid()));
+        (result).Set("level", Napi::Number::New(env, SteamUser()->GetPlayerSteamLevel()));
 
         if (!SteamFriends()->RequestUserInformation(user_id, true))
         {
-            Nan::Set(result, Nan::New("screenName").ToLocalChecked(),
-                     Nan::New(SteamFriends()->GetFriendPersonaName(user_id)).ToLocalChecked());
+            (result).Set("screenName", Napi::String::New(env, SteamFriends()->GetFriendPersonaName(user_id)));
         }
         else
         {
             std::ostringstream sout;
             sout << user_id.GetAccountID();
-            Nan::Set(result, Nan::New("screenName").ToLocalChecked(), Nan::New<v8::String>(sout.str()).ToLocalChecked());
+            (result).Set("screenName", Napi::String::New(env, sout.str()));
         }
 
-        info.GetReturnValue().Set(result);
+        return result;
     }
 
-    NAN_METHOD(RunCallbacks)
+    Napi::Value RunCallbacks(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         SteamAPI_RunCallbacks();
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(SaveTextToFile)
+    Napi::Value SaveFilesToCloud(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-
-        if (info.Length() < 3 || !info[0]->IsString() || !info[1]->IsString() ||
-            !info[2]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsArray() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-
-        std::string file_name(*(Nan::Utf8String(info[0])));
-        std::string content(*(Nan::Utf8String(info[1])));
-        Nan::Callback* success_callback = new Nan::Callback(info[2].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
-
-        if (info.Length() > 3 && info[3]->IsFunction())
-            error_callback = new Nan::Callback(info[3].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::FileContentSaveWorker(success_callback,
-                                                                    error_callback,
-                                                                    file_name,
-                                                                    content));
-        info.GetReturnValue().Set(Nan::Undefined());
-    }
-
-    NAN_METHOD(SaveFilesToCloud)
-    {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsArray() || !info[1]->IsFunction())
-        {
-            THROW_BAD_ARGS("Bad arguments");
-        }
-        v8::Local<v8::Array> files = info[0].As<v8::Array>();
+        Napi::Array files = info[0].As<Napi::Array>();
         std::vector<std::string> files_path;
-        for (uint32_t i = 0; i < files->Length(); ++i)
+        for (uint32_t i = 0; i < files.Length(); ++i)
         {
-            if (!Nan::Get(files, i).ToLocalChecked()->IsString())
+            if (!(files).Get(i).IsString())
                 THROW_BAD_ARGS("Bad arguments");
-            Nan::Utf8String string_array(Nan::Get(files, i).ToLocalChecked());
+            std::string string_array = (files).Get(i).ToString().Utf8Value();
             // Ignore empty path.
             if (string_array.length() > 0)
-                files_path.push_back(*string_array);
+                files_path.push_back(string_array);
         }
 
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-        Nan::AsyncQueueWorker(new greenworks::FilesSaveWorker(success_callback,
-                                                              error_callback,
-                                                              files_path));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::FilesSaveWorker(callback, files_path))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(ReadTextFromFile)
+    Napi::Value GetFileCount(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
+        return Napi::Number::New(env, SteamRemoteStorage()->GetFileCount());
+    }
 
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+    Napi::Value GetFileNameAndSize(const Napi::CallbackInfo& info)
+    {
+        Napi::Env env = info.Env();
+
+        if (info.Length() < 1 || !info[0].IsNumber())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string file_name(*(Nan::Utf8String(info[0])));
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
-
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::FileReadWorker(success_callback,
-                                                             error_callback,
-                                                             file_name));
-        info.GetReturnValue().Set(Nan::Undefined());
-    }
-
-    NAN_METHOD(GetFileCount)
-    {
-        Nan::HandleScope scope;
-        info.GetReturnValue().Set(Nan::New<v8::Integer>(SteamRemoteStorage()->GetFileCount()));
-    }
-
-    NAN_METHOD(GetFileNameAndSize)
-    {
-        Nan::HandleScope scope;
-
-        if (info.Length() < 1 || !info[0]->IsNumber())
-        {
-            THROW_BAD_ARGS("Bad arguments");
-        }
-
-        int iFile = Nan::To<int32_t>(info[0]).FromJust();
+        int iFile = info[0].As<Napi::Number>().Int32Value();
 
         int32 fileSize;
 
         const char* fileName = SteamRemoteStorage()->GetFileNameAndSize(iFile, &fileSize);
 
-        v8::Local<v8::Object> fileObject = Nan::New<v8::Object>();
+        Napi::Object fileObject = Napi::Object::New(env);
 
-        Nan::Set(fileObject, Nan::New("name").ToLocalChecked(), Nan::New<v8::String>(fileName).ToLocalChecked());
-        Nan::Set(fileObject, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(fileSize));
+        (fileObject).Set("name", Napi::String::New(env, fileName));
+        (fileObject).Set("size", Napi::Number::New(env, fileSize));
 
-        info.GetReturnValue().Set(fileObject);
+        return fileObject;
     }
 
-    NAN_METHOD(DeleteRemoteFile)
+    Napi::Value DeleteRemoteFile(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsString())
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string file_name(*(Nan::Utf8String(info[0])));
+        std::string file_name = info[0].ToString().Utf8Value();
 
         bool result = SteamRemoteStorage()->FileDelete(file_name.c_str());
 
-        info.GetReturnValue().Set(Nan::New<v8::Boolean>(result));
+        return Napi::Boolean::New(env, result);
     }
 
-    NAN_METHOD(IsCloudEnabled)
+    Napi::Value IsCloudEnabled(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
         ISteamRemoteStorage* steam_remote_storage = SteamRemoteStorage();
-        info.GetReturnValue().Set(Nan::New<v8::Boolean>(
-            steam_remote_storage->IsCloudEnabledForApp()));
+        return Napi::Boolean::New(env, steam_remote_storage->IsCloudEnabledForApp());
     }
 
-    NAN_METHOD(IsCloudEnabledForUser)
+    Napi::Value IsCloudEnabledForUser(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
         ISteamRemoteStorage* steam_remote_storage = SteamRemoteStorage();
-        info.GetReturnValue().Set(Nan::New<v8::Boolean>(
-            steam_remote_storage->IsCloudEnabledForAccount()));
+        return Napi::Boolean::New(env, steam_remote_storage->IsCloudEnabledForAccount());
     }
 
-    NAN_METHOD(EnableCloud)
+    Napi::Value EnableCloud(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         if (info.Length() < 1)
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        bool enable_flag = info[0]->BooleanValue(v8::Isolate::GetCurrent());
+        bool enable_flag = info[0].ToBoolean();
         SteamRemoteStorage()->SetCloudEnabledForApp(enable_flag);
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetCloudQuota)
+    Napi::Value GetCloudQuota(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        Nan::Callback* success_callback = new Nan::Callback(info[0].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[0].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[1]->IsFunction())
-            error_callback = new Nan::Callback(info[1].As<v8::Function>());
+        (new greenworks::CloudQuotaGetWorker(callback))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::CloudQuotaGetWorker(success_callback,
-                                                                  error_callback));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(ActivateAchievement)
+    Napi::Value ActivateAchievement(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string achievement = (*(Nan::Utf8String(info[0])));
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        std::string achievement = info[0].ToString().Utf8Value();
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
+        (new greenworks::ActivateAchievementWorker(callback, achievement))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::ActivateAchievementWorker(
-            success_callback, error_callback, achievement));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetAchievement)
+    Napi::Value GetAchievement(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string achievement = (*(Nan::Utf8String(info[0])));
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        std::string achievement = info[0].ToString().Utf8Value();
+        ;
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-        Nan::AsyncQueueWorker(new greenworks::GetAchievementWorker(
-            success_callback, error_callback, achievement));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::GetAchievementWorker(callback, achievement))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(ClearAchievement)
+    Napi::Value ClearAchievement(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string achievement = (*(Nan::Utf8String(info[0])));
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        std::string achievement = info[0].ToString().Utf8Value();
+        ;
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::ClearAchievementWorker(
-            success_callback, error_callback, achievement));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::ClearAchievementWorker(callback, achievement))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetAchievementNames)
+    Napi::Value GetAchievementNames(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
         int count = static_cast<int>(SteamUserStats()->GetNumAchievements());
-        v8::Local<v8::Array> names = Nan::New<v8::Array>(count);
+        Napi::Array names = Napi::Array::New(env, count);
         for (int i = 0; i < count; ++i)
         {
-            Nan::Set(names, i, Nan::New(SteamUserStats()->GetAchievementName(i)).ToLocalChecked());
+            (names).Set(i, Napi::String::New(env, SteamUserStats()->GetAchievementName(i)));
         }
-        info.GetReturnValue().Set(names);
+        return names;
     }
 
-    NAN_METHOD(GetNumberOfAchievements)
+    Napi::Value GetNumberOfAchievements(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
         ISteamUserStats* steam_user_stats = SteamUserStats();
-        info.GetReturnValue().Set(steam_user_stats->GetNumAchievements());
+        return Napi::Number::New(env, steam_user_stats->GetNumAchievements());
     }
 
-    NAN_METHOD(GetCurrentBetaName)
+    Napi::Value GetCurrentBetaName(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         std::string betaNameStr = "public";
 
@@ -417,24 +344,24 @@ namespace
 
         delete[] betaName;
 
-        info.GetReturnValue().Set(Nan::New(betaNameStr).ToLocalChecked());
+        return Napi::String::New(env, betaNameStr);
     }
 
-    NAN_METHOD(GetCurrentGameLanguage)
+    Napi::Value GetCurrentGameLanguage(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        info.GetReturnValue().Set(Nan::New(SteamApps()->GetCurrentGameLanguage()).ToLocalChecked());
+        Napi::Env env = info.Env();
+        return Napi::String::New(env, SteamApps()->GetCurrentGameLanguage());
     }
 
-    NAN_METHOD(GetCurrentUILanguage)
+    Napi::Value GetCurrentUILanguage(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        info.GetReturnValue().Set(Nan::New(SteamUtils()->GetSteamUILanguage()).ToLocalChecked());
+        Napi::Env env = info.Env();
+        return Napi::String::New(env, SteamUtils()->GetSteamUILanguage());
     }
 
-    NAN_METHOD(GetCurrentGameInstallDir)
+    Napi::Value GetCurrentGameInstallDir(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         uint32 appId = SteamUtils()->GetAppID();
 
@@ -446,79 +373,76 @@ namespace
 
         delete[] installDir;
 
-        info.GetReturnValue().Set(Nan::New(installDirRet).ToLocalChecked());
+        return Napi::String::New(env, installDirRet);
     }
 
-    NAN_METHOD(GetNumberOfPlayers)
+    Napi::Value GetNumberOfPlayers(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        Nan::Callback* success_callback = new Nan::Callback(info[0].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[0].As<Napi::Function>();
 
-        if (info.Length() > 1 && info[1]->IsFunction())
-            error_callback = new Nan::Callback(info[1].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::GetNumberOfPlayersWorker(
-            success_callback, error_callback));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::GetNumberOfPlayersWorker(callback))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(IsGameOverlayEnabled)
+    Napi::Value IsGameOverlayEnabled(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        info.GetReturnValue().Set(Nan::New(SteamUtils()->IsOverlayEnabled()));
+        Napi::Env env = info.Env();
+        return Napi::Boolean::New(env, SteamUtils()->IsOverlayEnabled());
     }
 
-    NAN_METHOD(ActivateGameOverlay)
+    Napi::Value ActivateGameOverlay(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string option(*(Nan::Utf8String(info[0])));
+        std::string option = info[0].ToString().Utf8Value();
+
         SteamFriends()->ActivateGameOverlay(option.c_str());
-        info.GetReturnValue().Set(Nan::Undefined());
+
+        return env.Undefined();
     }
 
-    NAN_METHOD(ActivateGameOverlayInviteDialog)
+    Napi::Value ActivateGameOverlayInviteDialog(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID lobbyId(utils::strToUint64(steamIdString));
 
         SteamFriends()->ActivateGameOverlayInviteDialog(lobbyId);
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(ActivateGameOverlayToWebPage)
+    Napi::Value ActivateGameOverlayToWebPage(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string option(*(Nan::Utf8String(info[0])));
+        std::string option = info[0].ToString().Utf8Value();
         SteamFriends()->ActivateGameOverlayToWebPage(option.c_str());
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(OnGameOverlayActive)
+    Napi::Value OnGameOverlayActive(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -528,22 +452,21 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnGameOverlayActivatedCallback != nullptr)
+        if (!steamCallbacks->OnGameOverlayActivatedCallback.IsEmpty())
         {
-            delete steamCallbacks->OnGameOverlayActivatedCallback;
-            steamCallbacks->OnGameOverlayActivatedCallback = nullptr;
+            steamCallbacks->OnGameOverlayActivatedCallback.Reset();
         }
 
-        steamCallbacks->OnGameOverlayActivatedCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnGameOverlayActivatedCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(OnGameJoinRequested)
+    Napi::Value OnGameJoinRequested(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -553,28 +476,27 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnGameJoinRequestedCallback != nullptr)
+        if (!steamCallbacks->OnGameJoinRequestedCallback.IsEmpty())
         {
-            delete steamCallbacks->OnGameJoinRequestedCallback;
-            steamCallbacks->OnGameJoinRequestedCallback = nullptr;
+            steamCallbacks->OnGameJoinRequestedCallback.Reset();
         }
 
-        steamCallbacks->OnGameJoinRequestedCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnGameJoinRequestedCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(SetRichPresence)
+    Napi::Value SetRichPresence(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsString())
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string key(*(Nan::Utf8String(info[0])));
-        std::string value(*(Nan::Utf8String(info[1])));
+        std::string key = info[0].ToString().Utf8Value();
+        std::string value = info[1].ToString().Utf8Value();
 
         if (key.length() > k_cchMaxRichPresenceKeyLength)
         {
@@ -588,277 +510,234 @@ namespace
 
         bool success = SteamFriends()->SetRichPresence(key.c_str(), value.c_str());
 
-        info.GetReturnValue().Set(Nan::New(success));
+        return Napi::Boolean::New(env, success);
     }
 
-    NAN_METHOD(ClearRichPresence)
+    Napi::Value ClearRichPresence(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         SteamFriends()->ClearRichPresence();
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(FileShare)
+    Napi::Value FileShare(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string file_name(*(Nan::Utf8String(info[0])));
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        std::string file_name = info[0].ToString().Utf8Value();
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::FileShareWorker(
-            success_callback, error_callback, file_name));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::FileShareWorker(callback, file_name))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(PublishWorkshopFile)
+    Napi::Value PublishWorkshopFile(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 6 || !info[0]->IsString() || !info[1]->IsString() ||
-            !info[2]->IsString() || !info[3]->IsString() ||
-            !info[4]->IsArray() || !info[5]->IsFunction())
+        if (info.Length() < 6 || !info[0].IsString() || !info[1].IsString() ||
+            !info[2].IsString() || !info[3].IsString() ||
+            !info[4].IsArray() || !info[5].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        std::string file_name(*(Nan::Utf8String(info[0])));
-        std::string image_name(*(Nan::Utf8String(info[1])));
-        std::string title(*(Nan::Utf8String(info[2])));
-        std::string description(*(Nan::Utf8String(info[3])));
+        std::string file_name = info[0].ToString().Utf8Value();
+        std::string image_name = info[1].ToString().Utf8Value();
+        std::string title = info[2].ToString().Utf8Value();
+        std::string description = info[3].ToString().Utf8Value();
 
-        v8::Local<v8::Array> tagsArray = info[4].As<v8::Array>();
+        Napi::Array tagsArray = info[4].As<Napi::Array>();
         std::vector<std::string> tags;
-        for (uint32_t i = 0; i < tagsArray->Length(); ++i)
+        for (uint32_t i = 0; i < tagsArray.Length(); ++i)
         {
-            if (!Nan::Get(tagsArray, i).ToLocalChecked()->IsString())
+            if (!(tagsArray).Get(i).IsString())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            Nan::Utf8String string_array(Nan::Get(tagsArray, i).ToLocalChecked());
+            std::string string_array = (tagsArray).Get(i).ToString().Utf8Value();
             if (string_array.length() > 0)
             {
-                tags.push_back(*string_array);
+                tags.push_back(string_array);
             }
         }
 
-        Nan::Callback* success_callback = new Nan::Callback(info[5].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[5].As<Napi::Function>();
 
-        if (info.Length() > 6 && info[6]->IsFunction())
-            error_callback = new Nan::Callback(info[6].As<v8::Function>());
+        (new greenworks::PublishWorkshopFileWorker(callback, file_name, image_name, title, description, tags))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::PublishWorkshopFileWorker(
-            success_callback, error_callback, file_name, image_name, title,
-            description, tags));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(UpdatePublishedWorkshopFile)
+    Napi::Value UpdatePublishedWorkshopFile(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 7 || !info[0]->IsString() || !info[1]->IsString() ||
-            !info[2]->IsString() || !info[3]->IsString() || !info[4]->IsString() ||
-            !info[5]->IsArray() || !info[6]->IsFunction())
+        if (info.Length() < 7 || !info[0].IsString() || !info[1].IsString() ||
+            !info[2].IsString() || !info[3].IsString() || !info[4].IsString() ||
+            !info[5].IsArray() || !info[6].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        PublishedFileId_t published_file_id = utils::strToUint64(
-            *(Nan::Utf8String(info[0])));
-        std::string file_name(*(Nan::Utf8String(info[1])));
-        std::string image_name(*(Nan::Utf8String(info[2])));
-        std::string title(*(Nan::Utf8String(info[3])));
-        std::string description(*(Nan::Utf8String(info[4])));
+        PublishedFileId_t published_file_id = utils::strToUint64(info[0].ToString().Utf8Value());
+        std::string file_name = info[1].ToString().Utf8Value();
+        std::string image_name = info[2].ToString().Utf8Value();
+        std::string title = info[3].ToString().Utf8Value();
+        std::string description = info[4].ToString().Utf8Value();
 
-        v8::Local<v8::Array> tagsArray = info[5].As<v8::Array>();
+        Napi::Array tagsArray = info[5].As<Napi::Array>();
         std::vector<std::string> tags;
-        for (uint32_t i = 0; i < tagsArray->Length(); ++i)
+        for (uint32_t i = 0; i < tagsArray.Length(); ++i)
         {
-            if (!Nan::Get(tagsArray, i).ToLocalChecked()->IsString())
+            if (!(tagsArray).Get(i).IsString())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            Nan::Utf8String string_array(Nan::Get(tagsArray, i).ToLocalChecked());
+            std::string string_array = (tagsArray).Get(i).ToString().Utf8Value();
             if (string_array.length() > 0)
             {
-                tags.push_back(*string_array);
+                tags.push_back(string_array);
             }
         }
 
-        Nan::Callback* success_callback = new Nan::Callback(info[6].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[6].As<Napi::Function>();
 
-        if (info.Length() > 6 && info[7]->IsFunction())
-            error_callback = new Nan::Callback(info[7].As<v8::Function>());
+        (new greenworks::UpdatePublishedWorkshopFileWorker(callback, published_file_id, file_name, image_name, title, description, tags))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::UpdatePublishedWorkshopFileWorker(
-            success_callback, error_callback, published_file_id, file_name,
-            image_name, title, description, tags));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCGetItems)
+    Napi::Value UGCGetItems(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 3 || !info[0]->IsInt32() || !info[1]->IsInt32() ||
-            !info[2]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 3 || !info[0].IsNumber() || !info[1].IsNumber() ||
+            !info[2].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(Nan::To<int32_t>(info[0]).FromJust());
-        EUGCQuery ugc_query_type = static_cast<EUGCQuery>(Nan::To<int32_t>(info[1]).FromJust());
+        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(info[0].As<Napi::Number>().Int32Value());
+        EUGCQuery ugc_query_type = static_cast<EUGCQuery>(info[1].As<Napi::Number>().Int32Value());
 
-        Nan::Callback* success_callback = new Nan::Callback(info[2].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[2].As<Napi::Function>();
 
-        if (info.Length() > 3 && info[3]->IsFunction())
-            error_callback = new Nan::Callback(info[3].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::QueryAllUGCWorker(
-            success_callback, error_callback, ugc_matching_type, ugc_query_type));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::QueryAllUGCWorker(callback, ugc_matching_type, ugc_query_type))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCGetUserItems)
+    Napi::Value UGCGetUserItems(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 4 || !info[0]->IsInt32() || !info[1]->IsInt32() ||
-            !info[2]->IsInt32() || !info[3]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 4 || !info[0].IsNumber() || !info[1].IsNumber() ||
+            !info[2].IsNumber() || !info[3].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(Nan::To<int32_t>(info[0]).FromJust());
-        EUserUGCListSortOrder ugc_list_order = static_cast<EUserUGCListSortOrder>(Nan::To<int32_t>(info[1]).FromJust());
-        EUserUGCList ugc_list = static_cast<EUserUGCList>(Nan::To<int32_t>(info[2]).FromJust());
+        EUGCMatchingUGCType ugc_matching_type = static_cast<EUGCMatchingUGCType>(info[0].As<Napi::Number>().Int32Value());
+        EUserUGCListSortOrder ugc_list_order = static_cast<EUserUGCListSortOrder>(info[1].As<Napi::Number>().Int32Value());
+        EUserUGCList ugc_list = static_cast<EUserUGCList>(info[2].As<Napi::Number>().Int32Value());
 
-        Nan::Callback* success_callback = new Nan::Callback(info[3].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[3].As<Napi::Function>();
 
-        if (info.Length() > 4 && info[4]->IsFunction())
-            error_callback = new Nan::Callback(info[4].As<v8::Function>());
+        (new greenworks::QueryUserUGCWorker(callback, ugc_matching_type, ugc_list, ugc_list_order))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::QueryUserUGCWorker(
-            success_callback, error_callback, ugc_matching_type, ugc_list,
-            ugc_list_order));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCDownloadItem)
+    Napi::Value UGCDownloadItem(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 3 || !info[0]->IsString() || !info[1]->IsString() ||
-            !info[2]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 3 || !info[0].IsString() || !info[1].IsString() ||
+            !info[2].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        UGCHandle_t download_file_handle = utils::strToUint64(
-            *(Nan::Utf8String(info[0])));
-        std::string download_dir = *(Nan::Utf8String(info[1]));
+        UGCHandle_t download_file_handle = utils::strToUint64(info[0].ToString().Utf8Value());
+        std::string download_dir = info[1].ToString().Utf8Value();
 
-        Nan::Callback* success_callback = new Nan::Callback(info[2].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[2].As<Napi::Function>();
 
-        if (info.Length() > 3 && info[3]->IsFunction())
-            error_callback = new Nan::Callback(info[3].As<v8::Function>());
+        (new greenworks::DownloadItemWorker(callback, download_file_handle, download_dir))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::DownloadItemWorker(
-            success_callback, error_callback, download_file_handle, download_dir));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCSynchronizeItems)
+    Napi::Value UGCSynchronizeItems(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string download_dir = *(Nan::Utf8String(info[0]));
+        std::string download_dir = info[0].ToString().Utf8Value();
 
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::SynchronizeItemsWorker(
-            success_callback, error_callback, download_dir));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::SynchronizeItemsWorker(callback, download_dir))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCShowOverlay)
+    Napi::Value UGCShowOverlay(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
         std::string steam_store_url;
         if (info.Length() < 1)
         {
             uint32 appId = SteamUtils()->GetAppID();
-            steam_store_url = "http://steamcommunity.com/app/" +
-                              utils::uint64ToString(appId) + "/workshop/";
+            steam_store_url = "http://steamcommunity.com/app/" + utils::uint64ToString(appId) + "/workshop/";
         }
         else
         {
-            if (!info[0]->IsString())
+            if (!info[0].IsString())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
-            std::string item_id = *(Nan::Utf8String(info[0]));
+            std::string item_id = info[0].ToString().Utf8Value();
             steam_store_url = "http://steamcommunity.com/sharedfiles/filedetails/?id=" + item_id;
         }
 
         SteamFriends()->ActivateGameOverlayToWebPage(steam_store_url.c_str());
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCUnsubscribe)
+    Napi::Value UGCUnsubscribe(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
-        PublishedFileId_t unsubscribed_file_id = utils::strToUint64(
-            *(Nan::Utf8String(info[0])));
-        Nan::Callback* success_callback = new Nan::Callback(info[1].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        PublishedFileId_t unsubscribed_file_id = utils::strToUint64(info[0].ToString().Utf8Value());
+        Napi::Function callback = info[1].As<Napi::Function>();
 
-        if (info.Length() > 2 && info[2]->IsFunction())
-            error_callback = new Nan::Callback(info[2].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::UnsubscribePublishedFileWorker(
-            success_callback, error_callback, unsubscribed_file_id));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::UnsubscribePublishedFileWorker(callback, unsubscribed_file_id))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCStartPlaytimeTracking)
+    Napi::Value UGCStartPlaytimeTracking(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsArray())
+        if (info.Length() < 1 || !info[0].IsArray())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
         PublishedFileId_t published_file_id[100];
 
-        v8::Local<v8::Array> array = info[0].As<v8::Array>();
+        Napi::Array array = info[0].As<Napi::Array>();
 
-        auto length = array->Length();
+        auto length = array.Length();
 
         if (length >= 100)
         {
@@ -867,125 +746,115 @@ namespace
 
         for (uint32_t i = 0; i < length; ++i)
         {
-            if (!Nan::Get(array, i).ToLocalChecked()->IsNumber())
+            if (!(array).Get(i).IsNumber())
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
 
-            published_file_id[i] = utils::strToUint64(*(Nan::Utf8String(Nan::Get(array, i).ToLocalChecked())));
+            published_file_id[i] = utils::strToUint64(array.Get(i).ToString().Utf8Value());
         }
 
         SteamUGC()->StartPlaytimeTracking(published_file_id, length);
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(UGCStopPlaytimeTracking)
+    Napi::Value UGCStopPlaytimeTracking(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         SteamUGC()->StopPlaytimeTrackingForAllItems();
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(CreateArchive)
+    Napi::Value CreateArchive(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 5 || !info[0]->IsString() || !info[1]->IsString() ||
-            !info[2]->IsString() || !info[3]->IsInt32() || !info[4]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 5 || !info[0].IsString() || !info[1].IsString() ||
+            !info[2].IsString() || !info[3].IsNumber() || !info[4].IsFunction())
         {
             THROW_BAD_ARGS("bad arguments");
         }
-        std::string zip_file_path = *(Nan::Utf8String(info[0]));
-        std::string source_dir = *(Nan::Utf8String(info[1]));
-        std::string password = *(Nan::Utf8String(info[2]));
-        int compress_level = Nan::To<int32_t>(info[3]).FromJust();
+        std::string zip_file_path = info[0].ToString().Utf8Value();
+        std::string source_dir = info[1].ToString().Utf8Value();
+        std::string password = info[2].ToString().Utf8Value();
+        int compress_level = info[3].As<Napi::Number>().Int32Value();
 
-        Nan::Callback* success_callback = new Nan::Callback(info[4].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[4].As<Napi::Function>();
 
-        if (info.Length() > 5 && info[5]->IsFunction())
-            error_callback = new Nan::Callback(info[5].As<v8::Function>());
-
-        Nan::AsyncQueueWorker(new greenworks::CreateArchiveWorker(
-            success_callback, error_callback, zip_file_path, source_dir, password,
-            compress_level));
-        info.GetReturnValue().Set(Nan::Undefined());
+        (new greenworks::CreateArchiveWorker(callback, zip_file_path, source_dir, password, compress_level))->Queue();
+        return env.Undefined();
     }
 
-    NAN_METHOD(ExtractArchive)
+    Napi::Value ExtractArchive(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 4 || !info[0]->IsString() || !info[1]->IsString() ||
-            !info[2]->IsString() || !info[3]->IsFunction())
+        Napi::Env env = info.Env();
+        if (info.Length() < 4 || !info[0].IsString() || !info[1].IsString() ||
+            !info[2].IsString() || !info[3].IsFunction())
         {
             THROW_BAD_ARGS("bad arguments");
         }
-        std::string zip_file_path = *(Nan::Utf8String(info[0]));
-        std::string extract_dir = *(Nan::Utf8String(info[1]));
-        std::string password = *(Nan::Utf8String(info[2]));
+        std::string zip_file_path = info[0].ToString().Utf8Value();
+        std::string extract_dir = info[1].ToString().Utf8Value();
+        std::string password = info[2].ToString().Utf8Value();
 
-        Nan::Callback* success_callback = new Nan::Callback(info[3].As<v8::Function>());
-        Nan::Callback* error_callback = nullptr;
+        Napi::Function callback = info[3].As<Napi::Function>();
 
-        if (info.Length() > 4 && info[4]->IsFunction())
-            error_callback = new Nan::Callback(info[4].As<v8::Function>());
+        (new greenworks::ExtractArchiveWorker(callback, zip_file_path, extract_dir, password))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::ExtractArchiveWorker(
-            success_callback, error_callback, zip_file_path, extract_dir, password));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetFriends)
+    Napi::Value GetFriends(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         EFriendFlags friendFlags = EFriendFlags::k_EFriendFlagImmediate;
 
         int friendCount = SteamFriends()->GetFriendCount(friendFlags);
 
-        v8::Local<v8::Array> friends = Nan::New<v8::Array>(static_cast<int>(friendCount));
+        Napi::Array friends = Napi::Array::New(env, static_cast<int>(friendCount));
 
         for (int i = 0; i < friendCount; i++)
         {
             CSteamID friendSteamId = SteamFriends()->GetFriendByIndex(i, friendFlags);
             if (friendSteamId.IsValid())
             {
-                v8::Local<v8::Object> friendObject = Nan::New<v8::Object>();
+                Napi::Object friendObject = Napi::Object::New(env);
 
-                Nan::Set(friendObject, Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendSteamId.GetStaticAccountKey())).ToLocalChecked());
-                Nan::Set(friendObject, Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendSteamId.ConvertToUint64())).ToLocalChecked());
+                (friendObject).Set("staticAccountId", Napi::String::New(env, utils::uint64ToString(friendSteamId.GetStaticAccountKey())));
+                (friendObject).Set("steamId", Napi::String::New(env, utils::uint64ToString(friendSteamId.ConvertToUint64())));
 
                 const char* friendName = SteamFriends()->GetFriendPersonaName(friendSteamId);
                 if (friendName != NULL)
                 {
-                    Nan::Set(friendObject, Nan::New("name").ToLocalChecked(), Nan::New(std::string(friendName)).ToLocalChecked());
+                    (friendObject).Set("name", Napi::String::New(env, friendName));
                 }
 
                 FriendGameInfo_t friendGameInfo;
                 if (SteamFriends()->GetFriendGamePlayed(friendSteamId, &friendGameInfo))
                 {
-                    Nan::Set(friendObject, Nan::New("gameId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendGameInfo.m_gameID.ToUint64())).ToLocalChecked());
-                    Nan::Set(friendObject, Nan::New("lobbyId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(friendGameInfo.m_steamIDLobby.ConvertToUint64())).ToLocalChecked());
+                    (friendObject).Set("gameId", Napi::String::New(env, utils::uint64ToString(friendGameInfo.m_gameID.ToUint64())));
+                    (friendObject).Set("lobbyId", Napi::String::New(env, utils::uint64ToString(friendGameInfo.m_steamIDLobby.ConvertToUint64())));
                 }
 
-                Nan::Set(friends, i, friendObject);
+                (friends).Set(i, friendObject);
             }
         }
 
-        info.GetReturnValue().Set(friends);
+        return friends;
     }
 
-    NAN_METHOD(CreateLobby)
+    Napi::Value CreateLobby(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsNumber())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsNumber())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        int lobbyType = Nan::To<int32_t>(info[0]).FromJust();
+        int lobbyType = info[0].As<Napi::Number>().Int32Value();
         if (lobbyType < 0 || lobbyType > 3)
         {
             THROW_BAD_ARGS("bad arguments");
@@ -993,53 +862,53 @@ namespace
 
         SteamMatchmaking()->CreateLobby((ELobbyType)lobbyType, 16);
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(LeaveLobby)
+    Napi::Value LeaveLobby(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID lobbyId(utils::strToUint64(steamIdString));
 
         SteamMatchmaking()->LeaveLobby(lobbyId);
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(JoinLobby)
+    Napi::Value JoinLobby(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID lobbyId(utils::strToUint64(steamIdString));
 
         SteamMatchmaking()->JoinLobby(lobbyId);
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(SetLobbyType)
+    Napi::Value SetLobbyType(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsNumber())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsNumber())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(Nan::Utf8String(info[0])));
+        std::string lobbyIdString = info[0].ToString().Utf8Value();
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
-        int lobbyType = Nan::To<int32_t>(info[1]).FromJust();
+        int lobbyType = info[1].As<Napi::Number>().Int32Value();
         if (lobbyType < 0 || lobbyType > 3)
         {
             THROW_BAD_ARGS("bad arguments");
@@ -1047,107 +916,107 @@ namespace
 
         bool success = SteamMatchmaking()->SetLobbyType(lobbyId, (ELobbyType)lobbyType);
 
-        info.GetReturnValue().Set(Nan::New(success));
+        return Napi::Boolean::New(env, success);
     }
 
-    NAN_METHOD(GetLobbyData)
+    Napi::Value GetLobbyData(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(Nan::Utf8String(info[0])));
-        std::string key(*(Nan::Utf8String(info[1])));
+        std::string lobbyIdString = info[0].ToString().Utf8Value();
+        std::string key = info[1].ToString().Utf8Value();
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
         const char* data = SteamMatchmaking()->GetLobbyData(lobbyId, key.c_str());
 
-        info.GetReturnValue().Set(Nan::New(std::string(data)).ToLocalChecked());
+        return Napi::String::New(env, data);
     }
 
-    NAN_METHOD(SetLobbyData)
+    Napi::Value SetLobbyData(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 3 || !info[0]->IsString() || !info[1]->IsString() || !info[2]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 3 || !info[0].IsString() || !info[1].IsString() || !info[2].IsString())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString(*(Nan::Utf8String(info[0])));
-        std::string key(*(Nan::Utf8String(info[1])));
-        std::string value(*(Nan::Utf8String(info[2])));
+        std::string lobbyIdString = info[0].ToString().Utf8Value();
+        std::string key = info[1].ToString().Utf8Value();
+        std::string value = info[2].ToString().Utf8Value();
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
         bool success = SteamMatchmaking()->SetLobbyData(lobbyId, key.c_str(), value.c_str());
 
-        info.GetReturnValue().Set(Nan::New(success));
+        return Napi::Boolean::New(env, success);
     }
 
-    NAN_METHOD(GetLobbyOwner)
+    Napi::Value GetLobbyOwner(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString = *(Nan::Utf8String(info[0]));
+        std::string lobbyIdString = info[0].ToString().Utf8Value();
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
         CSteamID lobbyOwner = SteamMatchmaking()->GetLobbyOwner(lobbyId);
 
-        info.GetReturnValue().Set(Nan::New<v8::String>(utils::uint64ToString(lobbyOwner.ConvertToUint64())).ToLocalChecked());
+        return Napi::String::New(env, utils::uint64ToString(lobbyOwner.ConvertToUint64()));
     }
 
-    NAN_METHOD(GetLobbyMembers)
+    Napi::Value GetLobbyMembers(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("bad arguments");
         }
 
-        std::string lobbyIdString = *(Nan::Utf8String(info[0]));
+        std::string lobbyIdString = info[0].ToString().Utf8Value();
 
         CSteamID lobbyId(utils::strToUint64(lobbyIdString));
 
         int lobbyMembersCount = SteamMatchmaking()->GetNumLobbyMembers(lobbyId);
 
-        v8::Local<v8::Array> lobbyMembers = Nan::New<v8::Array>(static_cast<int>(lobbyMembersCount));
+        Napi::Array lobbyMembers = Napi::Array::New(env, static_cast<int>(lobbyMembersCount));
 
         for (int i = 0; i < lobbyMembersCount; i++)
         {
             CSteamID lobbyMemberSteamId = SteamMatchmaking()->GetLobbyMemberByIndex(lobbyId, i);
             if (lobbyMemberSteamId.IsValid())
             {
-                v8::Local<v8::Object> lobbyMemberObject = Nan::New<v8::Object>();
+                Napi::Object lobbyMemberObject = Napi::Object::New(env);
 
-                Nan::Set(lobbyMemberObject, Nan::New("staticAccountId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(lobbyMemberSteamId.GetStaticAccountKey())).ToLocalChecked());
-                Nan::Set(lobbyMemberObject, Nan::New("steamId").ToLocalChecked(), Nan::New<v8::String>(utils::uint64ToString(lobbyMemberSteamId.ConvertToUint64())).ToLocalChecked());
+                (lobbyMemberObject).Set("staticAccountId", Napi::String::New(env, utils::uint64ToString(lobbyMemberSteamId.GetStaticAccountKey())));
+                (lobbyMemberObject).Set("steamId", Napi::String::New(env, utils::uint64ToString(lobbyMemberSteamId.ConvertToUint64())));
 
                 const char* lobbyMemberName = SteamFriends()->GetFriendPersonaName(lobbyMemberSteamId);
                 if (lobbyMemberName != NULL)
                 {
-                    Nan::Set(lobbyMemberObject, Nan::New("name").ToLocalChecked(), Nan::New(std::string(lobbyMemberName)).ToLocalChecked());
+                    (lobbyMemberObject).Set("name", Napi::String::New(env, lobbyMemberName));
                 }
 
-                Nan::Set(lobbyMembers, i, lobbyMemberObject);
+                (lobbyMembers).Set(i, lobbyMemberObject);
             }
         }
 
-        info.GetReturnValue().Set(lobbyMembers);
+        return lobbyMembers;
     }
 
-    NAN_METHOD(OnLobbyCreated)
+    Napi::Value OnLobbyCreated(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -1157,22 +1026,21 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnLobbyCreatedCallback != nullptr)
+        if (!steamCallbacks->OnLobbyCreatedCallback.IsEmpty())
         {
-            delete steamCallbacks->OnLobbyCreatedCallback;
-            steamCallbacks->OnLobbyCreatedCallback = nullptr;
+            steamCallbacks->OnLobbyCreatedCallback.Reset();
         }
 
-        steamCallbacks->OnLobbyCreatedCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnLobbyCreatedCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(OnLobbyEntered)
+    Napi::Value OnLobbyEntered(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -1182,22 +1050,21 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnLobbyEnteredCallback != nullptr)
+        if (!steamCallbacks->OnLobbyEnteredCallback.IsEmpty())
         {
-            delete steamCallbacks->OnLobbyEnteredCallback;
-            steamCallbacks->OnLobbyEnteredCallback = nullptr;
+            steamCallbacks->OnLobbyEnteredCallback.Reset();
         }
 
-        steamCallbacks->OnLobbyEnteredCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnLobbyEnteredCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(OnLobbyChatUpdate)
+    Napi::Value OnLobbyChatUpdate(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -1207,22 +1074,21 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnLobbyChatUpdateCallback != nullptr)
+        if (!steamCallbacks->OnLobbyChatUpdateCallback.IsEmpty())
         {
-            delete steamCallbacks->OnLobbyChatUpdateCallback;
-            steamCallbacks->OnLobbyChatUpdateCallback = nullptr;
+            steamCallbacks->OnLobbyChatUpdateCallback.Reset();
         }
 
-        steamCallbacks->OnLobbyChatUpdateCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnLobbyChatUpdateCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(OnLobbyJoinRequested)
+    Napi::Value OnLobbyJoinRequested(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -1232,173 +1098,171 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnLobbyJoinRequestedCallback != nullptr)
+        if (!steamCallbacks->OnLobbyJoinRequestedCallback.IsEmpty())
         {
-            delete steamCallbacks->OnLobbyJoinRequestedCallback;
-            steamCallbacks->OnLobbyJoinRequestedCallback = nullptr;
+            steamCallbacks->OnLobbyJoinRequestedCallback.Reset();
         }
 
-        steamCallbacks->OnLobbyJoinRequestedCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnLobbyJoinRequestedCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetStatInt)
+    Napi::Value GetStatInt(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(Nan::Utf8String(info[0])));
+        std::string name = info[0].ToString().Utf8Value();
+        ;
         int32 result = 0;
         if (SteamUserStats()->GetStat(name.c_str(), &result))
         {
-            info.GetReturnValue().Set(result);
-            return;
+            return Napi::Number::New(env, result);
         }
-        info.GetReturnValue().Set(Nan::Undefined());
+
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetStatFloat)
+    Napi::Value GetStatFloat(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(Nan::Utf8String(info[0])));
+        std::string name = info[0].ToString().Utf8Value();
+        ;
         float result = 0;
         if (SteamUserStats()->GetStat(name.c_str(), &result))
         {
-            info.GetReturnValue().Set(result);
-            return;
+            return Napi::Number::New(env, result);
         }
-        info.GetReturnValue().Set(Nan::Undefined());
+
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetGlobalStatInt)
+    Napi::Value GetGlobalStatInt(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(Nan::Utf8String(info[0])));
+        std::string name = info[0].ToString().Utf8Value();
+        ;
         int64 result = 0;
         if (SteamUserStats()->GetGlobalStat(name.c_str(), &result))
         {
-            info.GetReturnValue().Set((int32)result);
-            return;
+            return Napi::Number::New(env, (int32)result);
         }
-        info.GetReturnValue().Set(Nan::Undefined());
+
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetGlobalStatFloat)
+    Napi::Value GetGlobalStatFloat(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || !info[0]->IsString())
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = (*(Nan::Utf8String(info[0])));
+        std::string name = info[0].ToString().Utf8Value();
+        ;
         double result = 0;
         if (SteamUserStats()->GetGlobalStat(name.c_str(), &result))
         {
-            info.GetReturnValue().Set(result);
-            return;
+            return Napi::Number::New(env, result);
         }
-        info.GetReturnValue().Set(Nan::Undefined());
+
+        return env.Undefined();
     }
 
-    NAN_METHOD(SetStat)
+    Napi::Value SetStat(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 2 || !info[0]->IsString() || (!info[1]->IsNumber()))
+        Napi::Env env = info.Env();
+        if (info.Length() < 2 || !info[0].IsString() || (!info[1].IsNumber()))
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string name = *(Nan::Utf8String(info[0]));
-        if (info[1]->IsInt32())
+        std::string name = info[0].ToString().Utf8Value();
+        if (info[1].IsNumber())
         {
-            int32 value = Nan::To<int32_t>(info[1]).FromJust();
-            info.GetReturnValue().Set(SteamUserStats()->SetStat(name.c_str(), value));
+            int32 value = info[1].As<Napi::Number>().Int32Value();
+            return Napi::Boolean::New(env, SteamUserStats()->SetStat(name.c_str(), value));
         }
         else
         {
-            double value = Nan::To<double>(info[1].As<v8::Number>()).FromJust(); // info[1].As<v8::Number>()->NumberValue();
-            info.GetReturnValue().Set(SteamUserStats()->SetStat(name.c_str(), static_cast<float>(value)));
+            double value = info[1].ToNumber().DoubleValue();
+            return Napi::Boolean::New(env, SteamUserStats()->SetStat(name.c_str(), static_cast<float>(value)));
         }
     }
 
-    NAN_METHOD(StoreStats)
+    Napi::Value StoreStats(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || (!info[0]->IsFunction()))
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || (!info[0].IsFunction()))
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        Nan::Callback* success_callback = new Nan::Callback(info[0].As<v8::Function>());
+        Napi::Function callback = info[0].As<Napi::Function>();
 
-        Nan::Callback* error_callback = nullptr;
-        if (info.Length() > 1 && info[1]->IsFunction())
-        {
-            error_callback = new Nan::Callback(info[1].As<v8::Function>());
-        }
+        (new greenworks::StoreUserStatsWorker(callback))->Queue();
 
-        Nan::AsyncQueueWorker(new greenworks::StoreUserStatsWorker(success_callback, error_callback));
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(ResetAllStats)
+    Napi::Value ResetAllStats(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
-        if (info.Length() < 1 || (!info[0]->IsBoolean()))
+        Napi::Env env = info.Env();
+        if (info.Length() < 1 || (!info[0].IsBoolean()))
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        bool reset_achievement = info[0]->BooleanValue(v8::Isolate::GetCurrent());
-        info.GetReturnValue().Set(SteamUserStats()->ResetAllStats(reset_achievement));
+        bool reset_achievement = info[0].ToBoolean();
+        return Napi::Boolean::New(env, SteamUserStats()->ResetAllStats(reset_achievement));
     }
 
-    NAN_METHOD(InitRelayNetworkAccess)
+    Napi::Value InitRelayNetworkAccess(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         SteamNetworkingUtils()->InitRelayNetworkAccess();
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(GetRelayNetworkStatus)
+    Napi::Value GetRelayNetworkStatus(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         SteamRelayNetworkStatus_t status;
         SteamNetworkingUtils()->GetRelayNetworkStatus(&status);
 
-        v8::Local<v8::Object> result = Nan::New<v8::Object>();
+        Napi::Object result = Napi::Object::New(env);
 
-        Nan::Set(result, Nan::New("availabilitySummary").ToLocalChecked(), Nan::New<v8::Integer>(status.m_eAvail));
-        Nan::Set(result, Nan::New("availabilityNetworkConfig").ToLocalChecked(), Nan::New<v8::Integer>(status.m_eAvailNetworkConfig));
-        Nan::Set(result, Nan::New("availabilityAnyRelay").ToLocalChecked(), Nan::New<v8::Integer>(status.m_eAvailAnyRelay));
-        Nan::Set(result, Nan::New("debugMessage").ToLocalChecked(), Nan::New<v8::String>(status.m_debugMsg).ToLocalChecked());
+        (result).Set("availabilitySummary", Napi::Number::New(env, status.m_eAvail));
+        (result).Set("availabilityNetworkConfig", Napi::Number::New(env, status.m_eAvailNetworkConfig));
+        (result).Set("availabilityAnyRelay", Napi::Number::New(env, status.m_eAvailAnyRelay));
+        (result).Set("debugMessage", Napi::String::New(env, status.m_debugMsg));
 
-        info.GetReturnValue().Set(result);
+        return result;
     }
 
-    NAN_METHOD(SetRelayNetworkStatusCallback)
+    Napi::Value SetP2PSessionRequestCallback(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -1408,22 +1272,21 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        // if (steamCallbacks->OnSteamRelayNetworkStatusCallback != nullptr)
-        // {
-        //     delete steamCallbacks->OnSteamRelayNetworkStatusCallback;
-        //     steamCallbacks->OnSteamRelayNetworkStatusCallback = nullptr;
-        // }
+        if (!steamCallbacks->OnP2PSessionRequestCallback.IsEmpty())
+        {
+            steamCallbacks->OnP2PSessionRequestCallback.Reset();
+        }
 
-        // steamCallbacks->OnSteamRelayNetworkStatusCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnP2PSessionRequestCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(SetP2PSessionRequestCallback)
+    Napi::Value SetP2PSessionConnectFailCallback(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsFunction())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
@@ -1433,219 +1296,188 @@ namespace
             THROW_BAD_ARGS("Internal error");
         }
 
-        if (steamCallbacks->OnP2PSessionRequestCallback != nullptr)
+        if (!steamCallbacks->OnP2PSessionConnectFailCallback.IsEmpty())
         {
-            delete steamCallbacks->OnP2PSessionRequestCallback;
-            steamCallbacks->OnP2PSessionRequestCallback = nullptr;
+            steamCallbacks->OnP2PSessionConnectFailCallback.Reset();
         }
 
-        steamCallbacks->OnP2PSessionRequestCallback = new Nan::Callback(info[0].As<v8::Function>());
+        steamCallbacks->OnP2PSessionConnectFailCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
-        info.GetReturnValue().Set(Nan::Undefined());
+        return env.Undefined();
     }
 
-    NAN_METHOD(SetP2PSessionConnectFailCallback)
+    Napi::Value AcceptP2PSessionWithUser(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsFunction())
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        if (steamCallbacks == nullptr)
-        {
-            THROW_BAD_ARGS("Internal error");
-        }
-
-        if (steamCallbacks->OnP2PSessionConnectFailCallback != nullptr)
-        {
-            delete steamCallbacks->OnP2PSessionConnectFailCallback;
-            steamCallbacks->OnP2PSessionConnectFailCallback = nullptr;
-        }
-
-        steamCallbacks->OnP2PSessionConnectFailCallback = new Nan::Callback(info[0].As<v8::Function>());
-
-        info.GetReturnValue().Set(Nan::Undefined());
-    }
-
-    NAN_METHOD(AcceptP2PSessionWithUser)
-    {
-        Nan::HandleScope scope;
-
-        if (info.Length() < 1 || !info[0]->IsString())
-        {
-            THROW_BAD_ARGS("Bad arguments");
-        }
-
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID steamIdRemote(utils::strToUint64(steamIdString));
 
         bool success = SteamNetworking()->AcceptP2PSessionWithUser(steamIdRemote);
 
-        info.GetReturnValue().Set(Nan::New<v8::Boolean>(success));
+        return Napi::Boolean::New(env, success);
     }
 
-    NAN_METHOD(SendP2PPacket)
+    Napi::Value SendP2PPacket(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsUint8Array())
+        if (info.Length() < 2 || !info[0].IsString() || !info[1].IsTypedArray())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID steamIdRemote(utils::strToUint64(steamIdString));
 
-        Nan::TypedArrayContents<uint8_t> typedArrayContents(info[1]);
-        uint8_t* dst = *typedArrayContents;
-        uint32 length = sizeof(uint8_t) * typedArrayContents.length();
+        Napi::Uint8Array array = info[1].As<Napi::TypedArray>().As<Napi::Uint8Array>();
+        uint8_t* dst = array.Data();
+        uint32 length = sizeof(uint8_t) * array.ByteLength();
 
         bool sent = SteamNetworking()->SendP2PPacket(steamIdRemote, dst, length, EP2PSend::k_EP2PSendReliable);
 
-        info.GetReturnValue().Set(Nan::New<v8::Boolean>(sent));
+        return Napi::Boolean::New(env, sent);
     }
 
-    NAN_METHOD(IsP2PPacketAvailable)
+    Napi::Value IsP2PPacketAvailable(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
         uint32 messageSize;
         bool result = SteamNetworking()->IsP2PPacketAvailable(&messageSize);
         if (result && messageSize > 0)
         {
-            info.GetReturnValue().Set(Nan::New<v8::Integer>(messageSize));
+            return Napi::Number::New(env, messageSize);
         }
         else
         {
-            info.GetReturnValue().Set(Nan::Undefined());
+            return env.Undefined();
         }
     }
 
-    NAN_METHOD(ReadP2PPacket)
+    Napi::Value ReadP2PPacket(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsNumber())
+        if (info.Length() < 1 || !info[0].IsNumber())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        uint32 length = Nan::To<uint32>(info[0]).FromJust();
+        uint32 length = info[0].ToNumber().Uint32Value();
 
-        bool useProvidedArray = info.Length() > 1 && info[1]->IsUint8Array();
+        bool useProvidedArray = info.Length() > 1 && info[1].IsTypedArray();
+
         uint8_t* dst;
-        v8::Local<v8::Uint8Array> array;
+        Napi::Uint8Array array;
 
         if (useProvidedArray)
         {
-            Nan::TypedArrayContents<uint8_t> typedArrayContents(info[1]);
+            array = info[1].As<Napi::TypedArray>().As<Napi::Uint8Array>();
 
-            if (typedArrayContents.length() < length)
+            if (array.ByteLength() < length)
             {
                 THROW_BAD_ARGS("Bad arguments");
             }
-
-            dst = *typedArrayContents;
         }
         else
         {
-            v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), length);
-            array = v8::Uint8Array::New(buffer, 0, length);
-
-            Nan::TypedArrayContents<uint8_t> typedArrayContents(array);
-            dst = *typedArrayContents;
+            array = Napi::Uint8Array::New(env, length);
         }
+
+        dst = array.Data();
 
         uint32 packetSize;
         CSteamID steamIdRemote;
         bool success = SteamNetworking()->ReadP2PPacket(dst, sizeof(uint8_t) * length, &packetSize, &steamIdRemote);
         if (success)
         {
-            auto steamIdRemoteString = Nan::New<v8::String>(utils::uint64ToString(steamIdRemote.ConvertToUint64())).ToLocalChecked();
+            auto steamIdRemoteString = Napi::String::New(env, utils::uint64ToString(steamIdRemote.ConvertToUint64()));
 
             if (useProvidedArray)
             {
-                info.GetReturnValue().Set(steamIdRemoteString);
+                return steamIdRemoteString;
             }
             else
             {
-                v8::Local<v8::Object> result = Nan::New<v8::Object>();
-                Nan::Set(result, Nan::New("steamIdRemote").ToLocalChecked(), steamIdRemoteString);
-                Nan::Set(result, Nan::New("data").ToLocalChecked(), array);
-                info.GetReturnValue().Set(result);
+                Napi::Object result = Napi::Object::New(env);
+                (result).Set("steamIdRemote", steamIdRemoteString);
+                (result).Set("data", array);
+                return result;
             }
         }
         else
         {
-            info.GetReturnValue().Set(Nan::Undefined());
+            return env.Undefined();
         }
     }
 
-    NAN_METHOD(GetP2PSessionState)
+    Napi::Value GetP2PSessionState(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsString())
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID steamIdRemote(utils::strToUint64(steamIdString));
 
         P2PSessionState_t sessionState;
         bool success = SteamNetworking()->GetP2PSessionState(steamIdRemote, &sessionState);
         if (success)
         {
-            v8::Local<v8::Object> result = Nan::New<v8::Object>();
-            Nan::Set(result, Nan::New("connectionActive").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_bConnectionActive));
-            Nan::Set(result, Nan::New("connecting").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_bConnecting));
-            Nan::Set(result, Nan::New("lastError").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_eP2PSessionError));
-            Nan::Set(result, Nan::New("usingRelay").ToLocalChecked(), Nan::New<v8::Integer>(sessionState.m_bUsingRelay));
-            info.GetReturnValue().Set(result);
+            Napi::Object result = Napi::Object::New(env);
+            (result).Set("connectionActive", Napi::Number::New(env, sessionState.m_bConnectionActive));
+            (result).Set("connecting", Napi::Number::New(env, sessionState.m_bConnecting));
+            (result).Set("lastError", Napi::Number::New(env, sessionState.m_eP2PSessionError));
+            (result).Set("usingRelay", Napi::Number::New(env, sessionState.m_bUsingRelay));
+            return result;
         }
         else
         {
-            info.GetReturnValue().Set(Nan::Undefined());
+            return env.Undefined();
         }
     }
 
-    NAN_METHOD(CloseP2PSessionWithUser)
+    Napi::Value CloseP2PSessionWithUser(const Napi::CallbackInfo& info)
     {
-        Nan::HandleScope scope;
+        Napi::Env env = info.Env();
 
-        if (info.Length() < 1 || !info[0]->IsString())
+        if (info.Length() < 1 || !info[0].IsString())
         {
             THROW_BAD_ARGS("Bad arguments");
         }
 
-        std::string steamIdString(*(Nan::Utf8String(info[0])));
+        std::string steamIdString = info[0].ToString().Utf8Value();
         CSteamID steamIdRemote(utils::strToUint64(steamIdString));
 
         bool result = SteamNetworking()->CloseP2PSessionWithUser(steamIdRemote);
 
-        info.GetReturnValue().Set(Nan::New<v8::Boolean>(result));
+        return Napi::Boolean::New(env, result);
     }
 
-    void InitUtilsObject(v8::Local<v8::Object> exports)
+    void InitUtilsObject(Napi::Env env, Napi::Object exports)
     {
         // Prepare constructor template
-        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>();
+        Napi::Object tpl = Napi::Object::New(env);
 
         SET_FUNCTION_TPL("createArchive", CreateArchive);
         SET_FUNCTION_TPL("extractArchive", ExtractArchive);
 
-        Nan::Persistent<v8::Function> constructor;
-        constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
-        Nan::Set(exports, Nan::New("Utils").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+        (exports).Set("Utils", tpl);
     }
 
-    void InitNetworkingObject(v8::Local<v8::Object> exports)
+    void InitNetworkingObject(Napi::Env env, Napi::Object exports)
     {
         // Prepare constructor template
-        v8::Local<v8::FunctionTemplate> tpl = Nan::New<v8::FunctionTemplate>();
+        Napi::Object tpl = Napi::Object::New(env);
 
         SET_FUNCTION_TPL("initRelayNetworkAccess", InitRelayNetworkAccess);
         SET_FUNCTION_TPL("getRelayNetworkStatus", GetRelayNetworkStatus);
@@ -1655,16 +1487,13 @@ namespace
         SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
         SET_FUNCTION_TPL("getP2PSessionState", GetP2PSessionState);
         SET_FUNCTION_TPL("closeP2PSessionWithUser", CloseP2PSessionWithUser);
-        SET_FUNCTION_TPL("setRelayNetworkStatusCallback", SetRelayNetworkStatusCallback);
         SET_FUNCTION_TPL("setP2PSessionRequestCallback", SetP2PSessionRequestCallback);
         SET_FUNCTION_TPL("setP2PSessionConnectFailCallback", SetP2PSessionConnectFailCallback);
 
-        Nan::Persistent<v8::Function> constructor;
-        constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
-        Nan::Set(exports, Nan::New("networking").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
+        (exports).Set("networking", tpl);
     }
 
-    NAN_MODULE_INIT(init)
+    Napi::Object InitAll(Napi::Env env, Napi::Object exports)
     {
         // Common APIs.
         SET_FUNCTION("initAPI", InitAPI);
@@ -1675,8 +1504,6 @@ namespace
         SET_FUNCTION("getFileCount", GetFileCount);
         SET_FUNCTION("getFileNameAndSize", GetFileNameAndSize);
         SET_FUNCTION("deleteRemoteFile", DeleteRemoteFile);
-        SET_FUNCTION("saveTextToFile", SaveTextToFile);
-        SET_FUNCTION("readTextFromFile", ReadTextFromFile);
         SET_FUNCTION("saveFilesToCloud", SaveFilesToCloud);
 
         // Cloud APIs.
@@ -1749,35 +1576,19 @@ namespace
         SET_FUNCTION("onLobbyChatUpdate", OnLobbyChatUpdate);
         SET_FUNCTION("onLobbyJoinRequested", OnLobbyJoinRequested);
 
-        utils::InitUgcMatchingTypes(target);
-        utils::InitUgcQueryTypes(target);
-        utils::InitUserUgcListSortOrder(target);
-        utils::InitUserUgcList(target);
+        utils::InitUgcMatchingTypes(env, exports);
+        utils::InitUgcQueryTypes(env, exports);
+        utils::InitUserUgcListSortOrder(env, exports);
+        utils::InitUserUgcList(env, exports);
 
         // Utils related APIs.
-        InitUtilsObject(target);
+        InitUtilsObject(env, exports);
 
         // Networking apis
-        InitNetworkingObject(target);
+        InitNetworkingObject(env, exports);
+
+        return exports;
     }
 } // namespace
 
-#if defined(_WIN32)
-#if defined(_M_IX86)
-NAN_MODULE_WORKER_ENABLED(greenworks_win32, init)
-#elif defined(_M_AMD64)
-NAN_MODULE_WORKER_ENABLED(greenworks_win64, init)
-#endif
-#elif defined(__APPLE__)
-#if defined(__x86_64__) || defined(__ppc64__)
-NAN_MODULE_WORKER_ENABLED(greenworks_osx64, init)
-#else
-NAN_MODULE_WORKER_ENABLED(greenworks_osx32, init)
-#endif
-#elif defined(__linux__)
-#if defined(__x86_64__) || defined(__ppc64__)
-NAN_MODULE_WORKER_ENABLED(greenworks_linux64, init)
-#else
-NAN_MODULE_WORKER_ENABLED(greenworks_linux32, init)
-#endif
-#endif
+NODE_API_MODULE(addon, InitAll)

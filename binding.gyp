@@ -1,8 +1,8 @@
 {
   'variables': {
     'source_root_dir': '<!(python tools/source_root_dir.py)',
-    'steamworks_sdk_dir': 'deps/steamworks_sdk',
-    'target_dir': 'lib'
+    'steamworks_sdk_dir': '<(source_root_dir)/deps/steamworks_sdk',
+    'target_dir': '<(source_root_dir)/lib'
   },
 
   'conditions': [
@@ -86,18 +86,17 @@
         'src/steam_async_worker.h',
       ],
       'include_dirs': [
+        '<!(node -p "require(\'node-addon-api\').include_dir")',
         'deps',
         'src',
         '<(steamworks_sdk_dir)/public',
-        '<!(node -e "require(\'nan\')")'
       ],
       'dependencies': [ 'deps/third_party/zlib/zlib.gyp:minizip' ],
       'link_settings': {
         'libraries': [
-          '<(source_root_dir)/<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)'
+          '<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)'
         ]
       },
-      'cflags': [ '-std=c++14', '-Wno-deprecated-declarations' ],
       'conditions': [
         ['OS== "linux"',
           {
@@ -123,19 +122,8 @@
           ],
         }],
       ],
-      # "msvs_settings": {
-      #   "VCLinkerTool": {
-      #     "ImageHasSafeExceptionHandlers": "false",
-      #     # 'AdditionalOptions': [ '/NODEFAULTLIB:library' ],
-      #   },
-      #       'VCCLCompilerTool': {
-      #       # 0 - MultiThreaded (/MT)
-      #       # 1 - MultiThreadedDebug (/MTd)
-      #       # 2 - MultiThreadedDLL (/MD)
-      #       # 3 - MultiThreadedDebugDLL (/MDd)
-      #       'RuntimeLibrary': 2,
-      #     }
-      # },
+      'cflags': [ '-std=c++14', '-Wno-deprecated-declarations', '-fno-exceptions' ],
+      'cflags_cc!': [ '-fno-exceptions' ],
       'xcode_settings': {
         'WARNING_CFLAGS':  [
           '-Wno-deprecated-declarations',
@@ -147,6 +135,12 @@
         # 'OTHER_LDFLAGS': [
         #   '-stdlib=libc++'
         # ],
+        'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
+        'CLANG_CXX_LIBRARY': 'libc++',
+        'MACOSX_DEPLOYMENT_TARGET': '10.7',
+      },
+      'msvs_settings': {
+        'VCCLCompilerTool': { 'ExceptionHandling': 1 },
       },
       'msvs_disabled_warnings': [
         4068,  # disable unknown pragma warnings from nw.js custom node_buffer.h.
@@ -166,10 +160,10 @@
           'variables': {
             'conditions': [
               ['OS=="win"', {
-                'lib_steam_path': '<(source_root_dir)/<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_dll_steam)',
+                'lib_steam_path': '<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_dll_steam)',
               }],
               ['OS=="mac" or OS=="linux"', {
-                'lib_steam_path': '<(source_root_dir)/<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)',
+                'lib_steam_path': '<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)',
               }],
             ]
           },
@@ -182,7 +176,7 @@
           ],
           'action': [
             'python',
-            'tools/copy_binaries.py',
+            '<(source_root_dir)/tools/copy_binaries.py',
             '<@(_inputs)',
             '<@(_outputs)',
           ],

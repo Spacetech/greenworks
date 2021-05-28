@@ -4,8 +4,9 @@
 
 #include "greenworks_async_workers.h"
 
-#include "nan.h"
+#include "napi.h"
 #include "steam/steam_api.h"
+#include "uv.h"
 #include "v8.h"
 
 #include "greenworks_unzip.h"
@@ -16,10 +17,9 @@
 
 namespace greenworks
 {
-    FileContentSaveWorker::FileContentSaveWorker(Nan::Callback* success_callback,
-                                                 Nan::Callback* error_callback, std::string file_name, std::string content) : SteamAsyncWorker(success_callback, error_callback),
-                                                                                                                              file_name_(file_name),
-                                                                                                                              content_(content)
+    FileContentSaveWorker::FileContentSaveWorker(Napi::Function& callback, std::string file_name, std::string content) : SteamAsyncWorker(callback),
+                                                                                                                         file_name_(file_name),
+                                                                                                                         content_(content)
     {
     }
 
@@ -27,12 +27,11 @@ namespace greenworks
     {
         if (!SteamRemoteStorage()->FileWrite(
                 file_name_.c_str(), content_.c_str(), static_cast<int32>(content_.size())))
-            SetErrorMessage("Error on writing to file.");
+            SetError("Error on writing to file.");
     }
 
-    FilesSaveWorker::FilesSaveWorker(Nan::Callback* success_callback,
-                                     Nan::Callback* error_callback, const std::vector<std::string>& files_path) : SteamAsyncWorker(success_callback, error_callback),
-                                                                                                                  files_path_(files_path)
+    FilesSaveWorker::FilesSaveWorker(Napi::Function& callback, const std::vector<std::string>& files_path) : SteamAsyncWorker(callback),
+                                                                                                             files_path_(files_path)
     {
     }
 
@@ -47,7 +46,7 @@ namespace greenworks
             std::ifstream fileStream(filePath, std::ios::in | std::ios::binary);
             if (!fileStream.is_open())
             {
-                SetErrorMessage("Failed to open file (1)");
+                SetError("Failed to open file (1)");
                 break;
             }
 
@@ -56,7 +55,7 @@ namespace greenworks
             auto remoteFileHandle = SteamRemoteStorage()->FileWriteStreamOpen(file_name.c_str());
             if (remoteFileHandle == k_UGCFileStreamHandleInvalid)
             {
-                SetErrorMessage("Failed to open file write stream");
+                SetError("Failed to open file write stream");
                 break;
             }
 
@@ -73,13 +72,13 @@ namespace greenworks
 
             if (!wroteChunk)
             {
-                SetErrorMessage("Failed to write chunk to file stream");
+                SetError("Failed to write chunk to file stream");
                 break;
             }
 
             if (!SteamRemoteStorage()->FileWriteStreamClose(remoteFileHandle))
             {
-                SetErrorMessage("Failed to close file stream");
+                SetError("Failed to close file stream");
                 break;
             }
         }
@@ -87,9 +86,8 @@ namespace greenworks
         delete[] pBuffer;
     }
 
-    FileReadWorker::FileReadWorker(Nan::Callback* success_callback,
-                                   Nan::Callback* error_callback, std::string file_name) : SteamAsyncWorker(success_callback, error_callback),
-                                                                                           file_name_(file_name)
+    FileReadWorker::FileReadWorker(Napi::Function& callback, std::string file_name) : SteamAsyncWorker(callback),
+                                                                                      file_name_(file_name)
     {
     }
 
@@ -99,7 +97,7 @@ namespace greenworks
 
         if (!steam_remote_storage->FileExists(file_name_.c_str()))
         {
-            SetErrorMessage("File doesn't exist.");
+            SetError("File doesn't exist.");
             return;
         }
 
@@ -112,7 +110,7 @@ namespace greenworks
 
         if (end_pos == 0 && file_size > 0)
         {
-            SetErrorMessage("Error on reading file.");
+            SetError("Error on reading file.");
         }
         else
         {
@@ -122,18 +120,13 @@ namespace greenworks
         delete[] content;
     }
 
-    void FileReadWorker::HandleOKCallback()
+    void FileReadWorker::OnOK()
     {
-        Nan::HandleScope scope;
-
-        v8::Local<v8::Value> argv[] = {Nan::New<v8::String>(content_).ToLocalChecked()};
-        callback->Call(1, argv);
+        Callback().Call({Env().Null(), Napi::String::New(Env(), content_)});
     }
 
-    CloudQuotaGetWorker::CloudQuotaGetWorker(Nan::Callback* success_callback,
-                                             Nan::Callback* error_callback) : SteamAsyncWorker(success_callback,
-                                                                                               error_callback),
-                                                                              total_bytes_(-1), available_bytes_(-1)
+    CloudQuotaGetWorker::CloudQuotaGetWorker(Napi::Function& callback) : SteamAsyncWorker(callback),
+                                                                         total_bytes_(-1), available_bytes_(-1)
     {
     }
 
@@ -143,23 +136,21 @@ namespace greenworks
 
         if (!steam_remote_storage->GetQuota(&total_bytes_, &available_bytes_))
         {
-            SetErrorMessage("Error on getting cloud quota.");
+            SetError("Error on getting cloud quota.");
             return;
         }
     }
 
-    void CloudQuotaGetWorker::HandleOKCallback()
+    void CloudQuotaGetWorker::OnOK()
     {
-        Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {Nan::New(utils::uint64ToString(total_bytes_)).ToLocalChecked(),
-                                       Nan::New(utils::uint64ToString(available_bytes_)).ToLocalChecked()};
-        callback->Call(2, argv);
+        //     Napi::Value argv[] = {Napi::New(env, utils::uint64ToString(total_bytes_)),
+        //                           Napi::New(env, utils::uint64ToString(available_bytes_))};
+        Callback().Call({Env().Null(), Napi::Number::New(Env(), total_bytes_), Napi::Number::New(Env(), available_bytes_)});
     }
 
     ActivateAchievementWorker::ActivateAchievementWorker(
-        Nan::Callback* success_callback, Nan::Callback* error_callback,
-        const std::string& achievement) : SteamAsyncWorker(success_callback,
-                                                           error_callback),
+        Napi::Function& callback,
+        const std::string& achievement) : SteamAsyncWorker(callback),
                                           achievement_(achievement)
     {
     }
@@ -171,14 +162,13 @@ namespace greenworks
         steam_user_stats->SetAchievement(achievement_.c_str());
         if (!steam_user_stats->StoreStats())
         {
-            SetErrorMessage("Error on storing user achievement");
+            SetError("Error on storing user achievement");
         }
     }
 
     GetAchievementWorker::GetAchievementWorker(
-        Nan::Callback* success_callback,
-        Nan::Callback* error_callback,
-        const std::string& achievement) : SteamAsyncWorker(success_callback, error_callback),
+        Napi::Function& callback,
+        const std::string& achievement) : SteamAsyncWorker(callback),
                                           achievement_(achievement),
                                           is_achieved_(false)
     {
@@ -191,21 +181,18 @@ namespace greenworks
                                                         &is_achieved_);
         if (!success)
         {
-            SetErrorMessage("Achivement name is not valid.");
+            SetError("Achivement name is not valid.");
         }
     }
 
-    void GetAchievementWorker::HandleOKCallback()
+    void GetAchievementWorker::OnOK()
     {
-        Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {Nan::New(is_achieved_)};
-        callback->Call(1, argv);
+        Callback().Call({Env().Null(), Napi::Boolean::New(Env(), is_achieved_)});
     }
 
     ClearAchievementWorker::ClearAchievementWorker(
-        Nan::Callback* success_callback,
-        Nan::Callback* error_callback,
-        const std::string& achievement) : SteamAsyncWorker(success_callback, error_callback),
+        Napi::Function& callback,
+        const std::string& achievement) : SteamAsyncWorker(callback),
                                           achievement_(achievement),
                                           success_(false)
     {
@@ -217,23 +204,22 @@ namespace greenworks
         success_ = steam_user_stats->ClearAchievement(achievement_.c_str());
         if (!success_)
         {
-            SetErrorMessage("Achievement name is not valid.");
+            SetError("Achievement name is not valid.");
         }
         else if (!steam_user_stats->StoreStats())
         {
-            SetErrorMessage("Fails on uploading user stats to server.");
+            SetError("Fails on uploading user stats to server.");
         }
     }
 
-    void ClearAchievementWorker::HandleOKCallback()
+    void ClearAchievementWorker::OnOK()
     {
-        Nan::HandleScope scope;
-        callback->Call(0, nullptr);
+        Callback().Call({Env().Null()});
     }
 
     GetNumberOfPlayersWorker::GetNumberOfPlayersWorker(
-        Nan::Callback* success_callback, Nan::Callback* error_callback)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
+        Napi::Function& callback)
+        : SteamCallbackAsyncWorker(callback),
           num_of_players_(-1)
     {
     }
@@ -251,7 +237,7 @@ namespace greenworks
     {
         if (io_failure)
         {
-            SetErrorMessage("Error on getting number of players: Steam API IO Failure");
+            SetError("Error on getting number of players: Steam API IO Failure");
         }
         else if (result->m_bSuccess)
         {
@@ -259,24 +245,20 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessage("Error on getting number of players.");
+            SetError("Error on getting number of players.");
         }
         is_completed_ = true;
     }
 
-    void GetNumberOfPlayersWorker::HandleOKCallback()
+    void GetNumberOfPlayersWorker::OnOK()
     {
-        Nan::HandleScope scope;
-
-        v8::Local<v8::Value> argv[] = {Nan::New(num_of_players_)};
-        callback->Call(1, argv);
+        Callback().Call({Env().Null(), Napi::Number::New(Env(), num_of_players_)});
     }
 
-    CreateArchiveWorker::CreateArchiveWorker(Nan::Callback* success_callback,
-                                             Nan::Callback* error_callback, const std::string& zip_file_path,
+    CreateArchiveWorker::CreateArchiveWorker(Napi::Function& callback, const std::string& zip_file_path,
                                              const std::string& source_dir, const std::string& password,
                                              int compress_level)
-        : SteamAsyncWorker(success_callback, error_callback),
+        : SteamAsyncWorker(callback),
           zip_file_path_(zip_file_path),
           source_dir_(source_dir),
           password_(password),
@@ -291,13 +273,12 @@ namespace greenworks
                          compress_level_,
                          password_.empty() ? nullptr : password_.c_str());
         if (result)
-            SetErrorMessage("Error on creating zip file.");
+            SetError("Error on creating zip file.");
     }
 
-    ExtractArchiveWorker::ExtractArchiveWorker(Nan::Callback* success_callback,
-                                               Nan::Callback* error_callback, const std::string& zip_file_path,
+    ExtractArchiveWorker::ExtractArchiveWorker(Napi::Function& callback, const std::string& zip_file_path,
                                                const std::string& extract_path, const std::string& password)
-        : SteamAsyncWorker(success_callback, error_callback),
+        : SteamAsyncWorker(callback),
           zip_file_path_(zip_file_path),
           extract_path_(extract_path),
           password_(password)
@@ -309,13 +290,11 @@ namespace greenworks
         int result = unzip(zip_file_path_.c_str(), extract_path_.c_str(),
                            password_.empty() ? nullptr : password_.c_str());
         if (result)
-            SetErrorMessage("Error on extracting zip file.");
+            SetError("Error on extracting zip file.");
     }
 
-    StoreUserStatsWorker::StoreUserStatsWorker(Nan::Callback* success_callback,
-                                               Nan::Callback* error_callback)
-        : SteamCallbackAsyncWorker(success_callback, error_callback),
-          result(this, &StoreUserStatsWorker::OnUserStatsStored) {}
+    StoreUserStatsWorker::StoreUserStatsWorker(Napi::Function& callback) : SteamCallbackAsyncWorker(callback),
+                                                                           result(this, &StoreUserStatsWorker::OnUserStatsStored) {}
 
     void StoreUserStatsWorker::Execute()
     {
@@ -325,7 +304,7 @@ namespace greenworks
         }
         else
         {
-            SetErrorMessage("Error storing user stats");
+            SetError("Error storing user stats");
         }
     }
 
@@ -333,7 +312,7 @@ namespace greenworks
     {
         if (result->m_eResult != k_EResultOK)
         {
-            SetErrorMessageEx("Error on storing user stats: %d.", result->m_eResult);
+            SetError("Error on storing user stats: " + std::to_string(result->m_eResult));
         }
         else
         {
@@ -343,12 +322,10 @@ namespace greenworks
         is_completed_ = true;
     }
 
-    void StoreUserStatsWorker::HandleOKCallback()
+    void StoreUserStatsWorker::OnOK()
     {
-        Nan::HandleScope scope;
-        v8::Local<v8::Value> argv[] = {
-            Nan::New(utils::uint64ToString(game_id_)).ToLocalChecked()};
-        callback->Call(1, argv);
+        //     Napi::Value argv[] = {   Napi::New(env, utils::uint64ToString(game_id_))};
+        Callback().Call({Env().Null(), Napi::Number::New(Env(), game_id_)});
     }
 
 } // namespace greenworks

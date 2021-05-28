@@ -5,26 +5,24 @@
 #ifndef SRC_STEAM_ASYNC_WORKER_H_
 #define SRC_STEAM_ASYNC_WORKER_H_
 
+#include "napi.h"
+#include "uv.h"
 #include <stdarg.h>
-#include "nan.h"
 
 namespace greenworks
 {
     // Extend NanAsyncWorker with custom error callback supports.
-    class SteamAsyncWorker : public Nan::AsyncWorker
+    class SteamAsyncWorker : public Napi::AsyncWorker
     {
       public:
-        SteamAsyncWorker(Nan::Callback* success_callback, Nan::Callback* error_callback);
-
+        SteamAsyncWorker(Napi::Function& callback);
         ~SteamAsyncWorker();
 
-        // Override NanAsyncWorker methods:
-        virtual void HandleErrorCallback() override;
+        virtual void Execute() = 0;
+        // virtual void OnOK() = 0;
 
       protected:
-        Nan::Callback* error_callback_;
-
-        void SetErrorMessageEx(const char* format, ...)
+        void SetErrorEx(const char* format, ...)
         {
             char buffer[1024];
 
@@ -32,7 +30,7 @@ namespace greenworks
             va_start(args, format);
             vsnprintf(buffer, 1024, format, args);
 
-            SetErrorMessage(buffer);
+            SetError(buffer);
 
             va_end(args);
         }
@@ -42,8 +40,11 @@ namespace greenworks
     class SteamCallbackAsyncWorker : public SteamAsyncWorker
     {
       public:
-        SteamCallbackAsyncWorker(Nan::Callback* success_callback,
-                                 Nan::Callback* error_callback);
+        SteamCallbackAsyncWorker(Napi::Function& callback);
+        ~SteamCallbackAsyncWorker();
+
+        virtual void Execute() = 0;
+        // virtual void OnOK() = 0;
 
         void WaitForCompleted();
 

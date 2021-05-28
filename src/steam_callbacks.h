@@ -5,14 +5,15 @@
 #ifndef SRC_STEAM_CALLBACKS_H_
 #define SRC_STEAM_CALLBACKS_H_
 
-#include "nan.h"
+#include "napi.h"
+#include "uv.h"
 #include "steam/isteamnetworking.h"
 #include "steam/isteamnetworkingutils.h"
 #include "steam/steam_api.h"
 #include "steam/steamnetworkingtypes.h"
 
 #define SETUP_STEAM_CALLBACK_DECLARATION(name, type) \
-    Nan::Callback* name##Callback;                   \
+    Napi::FunctionReference name##Callback;                   \
     STEAM_CALLBACK(SteamCallbacks, name, type, m_Callback##name)
 
 #define SETUP_STEAM_CALLBACK_MEMBER(name) \
@@ -31,7 +32,6 @@ namespace greenworks
         SETUP_STEAM_CALLBACK_DECLARATION(OnLobbyEntered, LobbyEnter_t);
         SETUP_STEAM_CALLBACK_DECLARATION(OnLobbyChatUpdate, LobbyChatUpdate_t);
         SETUP_STEAM_CALLBACK_DECLARATION(OnLobbyJoinRequested, GameLobbyJoinRequested_t);
-        // SETUP_STEAM_CALLBACK_DECLARATION(OnSteamRelayNetworkStatus, SteamRelayNetworkStatus_t);
         SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionRequest, P2PSessionRequest_t);
         SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionConnectFail, P2PSessionConnectFail_t);
     };

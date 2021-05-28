@@ -4,7 +4,8 @@
 
 #include "steam_callbacks.h"
 
-#include "nan.h"
+#include "napi.h"
+#include "uv.h"
 #include "v8.h"
 
 #include "greenworks_utils.h"
@@ -18,157 +19,108 @@ namespace greenworks
           SETUP_STEAM_CALLBACK_MEMBER(OnLobbyEntered),
           SETUP_STEAM_CALLBACK_MEMBER(OnLobbyChatUpdate),
           SETUP_STEAM_CALLBACK_MEMBER(OnLobbyJoinRequested),
-          //   SETUP_STEAM_CALLBACK_MEMBER(OnSteamRelayNetworkStatus),
           SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest),
           SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail)
     {
-        OnGameOverlayActivatedCallback = nullptr;
-        OnGameJoinRequestedCallback = nullptr;
-        OnLobbyCreatedCallback = nullptr;
-        OnLobbyEnteredCallback = nullptr;
-        OnLobbyChatUpdateCallback = nullptr;
-        OnLobbyJoinRequestedCallback = nullptr;
-        // OnSteamRelayNetworkStatusCallback = nullptr;
-        OnP2PSessionRequestCallback = nullptr;
-        OnP2PSessionConnectFailCallback = nullptr;
     }
 
     void SteamCallbacks::OnGameOverlayActivated(GameOverlayActivated_t* pCallback)
     {
-        if (OnGameOverlayActivatedCallback == nullptr)
+        if (!OnGameOverlayActivatedCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnGameOverlayActivatedCallback.Env();
+
+            OnGameOverlayActivatedCallback.Call({Napi::Boolean::New(env, pCallback->m_bActive ? true : false)});
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New<v8::Boolean>(pCallback->m_bActive ? true : false),
-        };
-
-        OnGameOverlayActivatedCallback->Call(1, argv);
     }
 
     void SteamCallbacks::OnGameJoinRequested(GameRichPresenceJoinRequested_t* pCallback)
     {
-        if (OnGameJoinRequestedCallback == nullptr)
+        if (!OnGameJoinRequestedCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnGameJoinRequestedCallback.Env();
+
+            OnGameJoinRequestedCallback.Call({Napi::String::New(env, pCallback->m_rgchConnect)});
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New<v8::String>(pCallback->m_rgchConnect).ToLocalChecked(),
-        };
-
-        OnGameJoinRequestedCallback->Call(1, argv);
     }
 
     void SteamCallbacks::OnLobbyCreated(LobbyCreated_t* pCallback)
     {
-        if (OnLobbyCreatedCallback == nullptr)
+        if (!OnLobbyCreatedCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnLobbyCreatedCallback.Env();
+
+            OnLobbyCreatedCallback.Call({
+                Napi::Boolean::New(env, pCallback->m_eResult == k_EResultOK),
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_ulSteamIDLobby)),
+                Napi::Number::New(env, pCallback->m_eResult),
+            });
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New<v8::Boolean>(pCallback->m_eResult == k_EResultOK),
-            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
-            Nan::New<v8::Integer>(pCallback->m_eResult),
-        };
-
-        OnLobbyCreatedCallback->Call(3, argv);
     }
 
     void SteamCallbacks::OnLobbyEntered(LobbyEnter_t* pCallback)
     {
-        if (OnLobbyEnteredCallback == nullptr)
+        if (!OnLobbyEnteredCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnLobbyEnteredCallback.Env();
+
+            OnLobbyEnteredCallback.Call({
+                Napi::Boolean::New(env, pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess),
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_ulSteamIDLobby)),
+                Napi::Number::New(env, pCallback->m_EChatRoomEnterResponse),
+            });
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New<v8::Boolean>(pCallback->m_EChatRoomEnterResponse == k_EChatRoomEnterResponseSuccess),
-            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
-            Nan::New<v8::Integer>(pCallback->m_EChatRoomEnterResponse),
-        };
-
-        OnLobbyEnteredCallback->Call(3, argv);
     }
 
     void SteamCallbacks::OnLobbyChatUpdate(LobbyChatUpdate_t* pCallback)
     {
-        if (OnLobbyChatUpdateCallback == nullptr)
+        if (!OnLobbyChatUpdateCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnLobbyChatUpdateCallback.Env();
+
+            OnLobbyChatUpdateCallback.Call({
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_ulSteamIDLobby)),
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_ulSteamIDUserChanged)),
+                Napi::Number::New(env, pCallback->m_rgfChatMemberStateChange),
+            });
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDLobby)).ToLocalChecked(),
-            Nan::New(utils::uint64ToString(pCallback->m_ulSteamIDUserChanged)).ToLocalChecked(),
-            Nan::New(pCallback->m_rgfChatMemberStateChange),
-        };
-
-        OnLobbyChatUpdateCallback->Call(3, argv);
     }
 
     void SteamCallbacks::OnLobbyJoinRequested(GameLobbyJoinRequested_t* pCallback)
     {
-        if (OnLobbyJoinRequestedCallback == nullptr)
+        if (!OnLobbyJoinRequestedCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnLobbyJoinRequestedCallback.Env();
+
+            OnLobbyJoinRequestedCallback.Call({
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDLobby.ConvertToUint64())),
+            });
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New(utils::uint64ToString(pCallback->m_steamIDLobby.ConvertToUint64())).ToLocalChecked(),
-        };
-
-        OnLobbyJoinRequestedCallback->Call(1, argv);
     }
-
-    /* broken / doesn't exist
-    void SteamCallbacks::OnSteamRelayNetworkStatus(SteamRelayNetworkStatus_t* pCallback)
-    {
-        if (OnSteamRelayNetworkStatusCallback == nullptr)
-        {
-            return;
-        }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New<v8::Integer>(pCallback->m_eAvail),
-            Nan::New<v8::Integer>(pCallback->m_eAvailNetworkConfig),
-            Nan::New<v8::Integer>(pCallback->m_eAvailAnyRelay),
-            Nan::New<v8::String>(pCallback->m_debugMsg).ToLocalChecked(),
-        };
-
-        OnSteamRelayNetworkStatusCallback->Call(3, argv);
-    }
-    */
 
     void SteamCallbacks::OnP2PSessionRequest(P2PSessionRequest_t* pCallback)
     {
-        if (OnP2PSessionRequestCallback == nullptr)
+        if (!OnP2PSessionRequestCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnP2PSessionRequestCallback.Env();
+
+            OnP2PSessionRequestCallback.Call({
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
+            });
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New(utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())).ToLocalChecked(),
-        };
-
-        OnP2PSessionRequestCallback->Call(1, argv);
     }
 
     void SteamCallbacks::OnP2PSessionConnectFail(P2PSessionConnectFail_t* pCallback)
     {
-        if (OnP2PSessionConnectFailCallback == nullptr)
+        if (!OnP2PSessionConnectFailCallback.IsEmpty())
         {
-            return;
+            Napi::Env env = OnP2PSessionConnectFailCallback.Env();
+
+            OnP2PSessionConnectFailCallback.Call({
+                Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
+                Napi::Number::New(env, pCallback->m_eP2PSessionError),
+            });
         }
-
-        v8::Local<v8::Value> argv[] = {
-            Nan::New(utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())).ToLocalChecked(),
-            Nan::New<v8::Integer>(pCallback->m_eP2PSessionError),
-        };
-
-        OnP2PSessionConnectFailCallback->Call(2, argv);
     }
 
 } // namespace greenworks
