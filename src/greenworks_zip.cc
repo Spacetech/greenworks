@@ -128,41 +128,41 @@ uLong filetime(const char *f, tm_zip *tmzip, uLong *dt)
 #endif
 
 	/* calculate the CRC32 of a file, because to encrypt a file, we need known the CRC32 of the file before */
-	int getFileCrc(const char* filenameinzip, void* buf, unsigned long size_buf, unsigned long* result_crc)
-	{
-		unsigned long calculate_crc = 0;
-		int err = ZIP_OK;
-		FILE* fin = fopen(filenameinzip, "rb");
-		unsigned long size_read;
-		unsigned long total_read = 0;
-		if (fin == nullptr)
-		{
-			err = ZIP_ERRNO;
-		}
+	// int getFileCrc(const char* filenameinzip, void* buf, unsigned long size_buf, unsigned long* result_crc)
+	// {
+	// 	unsigned long calculate_crc = 0;
+	// 	int err = ZIP_OK;
+	// 	FILE* fin = fopen(filenameinzip, "rb");
+	// 	unsigned long size_read;
+	// 	unsigned long total_read = 0;
+	// 	if (fin == nullptr)
+	// 	{
+	// 		err = ZIP_ERRNO;
+	// 	}
 
-		if (err == ZIP_OK)
-			do
-			{
-				err = ZIP_OK;
-				size_read = static_cast<int>(fread(buf, 1, size_buf, fin));
-				if (size_read < size_buf)
-					if (feof(fin) == 0)
-					{
-						err = ZIP_ERRNO;
-					}
+	// 	if (err == ZIP_OK)
+	// 		do
+	// 		{
+	// 			err = ZIP_OK;
+	// 			size_read = static_cast<int>(fread(buf, 1, size_buf, fin));
+	// 			if (size_read < size_buf)
+	// 				if (feof(fin) == 0)
+	// 				{
+	// 					err = ZIP_ERRNO;
+	// 				}
 
-				if (size_read > 0)
-					calculate_crc = crc32(calculate_crc, static_cast<const Bytef*>(buf), size_read);
-				total_read += size_read;
-			}
-			while ((err == ZIP_OK) && (size_read > 0));
+	// 			if (size_read > 0)
+	// 				calculate_crc = crc32(calculate_crc, static_cast<const Bytef*>(buf), size_read);
+	// 			total_read += size_read;
+	// 		}
+	// 		while ((err == ZIP_OK) && (size_read > 0));
 
-		if (fin)
-			fclose(fin);
+	// 	if (fin)
+	// 		fclose(fin);
 
-		*result_crc = calculate_crc;
-		return err;
-	}
+	// 	*result_crc = calculate_crc;
+	// 	return err;
+	// }
 
 	int isLargeFile(const char* filename)
 	{
@@ -352,8 +352,8 @@ namespace greenworks
 
 				filetime(filenameinzip, &zi.tmz_date, &zi.dosDate);
 
-				if ((password != nullptr && strlen(password) > 0) && (err == ZIP_OK))
-					getFileCrc(filenameinzip, buf, size_buf, &crcFile);
+				// if ((password != nullptr && strlen(password) > 0) && (err == ZIP_OK))
+				// 	getFileCrc(filenameinzip, buf, size_buf, &crcFile);
 
 				zip64 = isLargeFile(filenameinzip);
 
