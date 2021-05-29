@@ -18,29 +18,29 @@
 
 namespace utils
 {
-    void InitUgcQueryTypes(Napi::Env env, Napi::Object exports);
+void InitUgcQueryTypes(Napi::Env env, Napi::Object exports);
 
-    void InitUgcMatchingTypes(Napi::Env env, Napi::Object exports);
+void InitUgcMatchingTypes(Napi::Env env, Napi::Object exports);
 
-    void InitUserUgcListSortOrder(Napi::Env env, Napi::Object exports);
+void InitUserUgcListSortOrder(Napi::Env env, Napi::Object exports);
 
-    void InitUserUgcList(Napi::Env env, Napi::Object exports);
+void InitUserUgcList(Napi::Env env, Napi::Object exports);
 
-    void sleep(int milliseconds);
+void sleep(int milliseconds);
 
-    bool WriteFile(const std::string& target_path, char* content, int length);
+bool WriteFile(const std::string &target_path, char *content, int length);
 
-    std::string GetFileNameFromPath(const std::string& file_path);
+std::string GetFileNameFromPath(const std::string &file_path);
 
-    bool UpdateFileLastUpdatedTime(const char* file_path, time_t time);
+bool UpdateFileLastUpdatedTime(const char *file_path, time_t time);
 
-    int64 GetFileLastUpdatedTime(const char* file_path);
+int64 GetFileLastUpdatedTime(const char *file_path);
 
-    std::string uint64ToString(uint64 value);
+std::string uint64ToString(uint64 value);
 
-    uint64 strToUint64(std::string);
+uint64 strToUint64(std::string);
 
-    void DebugLog(const char* format, ...);
+void DebugLog(const char *format, ...);
 
 } // namespace utils
 

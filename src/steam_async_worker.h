@@ -9,48 +9,45 @@
 #include "uv.h"
 #include <stdarg.h>
 
-namespace greenworks
+// Extend NanAsyncWorker with custom error callback supports.
+class SteamAsyncWorker : public Napi::AsyncWorker
 {
-    // Extend NanAsyncWorker with custom error callback supports.
-    class SteamAsyncWorker : public Napi::AsyncWorker
+  public:
+    SteamAsyncWorker(Napi::Function &callback);
+    ~SteamAsyncWorker();
+
+    virtual void Execute() = 0;
+    // virtual void OnOK() = 0;
+
+  protected:
+    void SetErrorEx(const char *format, ...)
     {
-      public:
-        SteamAsyncWorker(Napi::Function& callback);
-        ~SteamAsyncWorker();
+        char buffer[1024];
 
-        virtual void Execute() = 0;
-        // virtual void OnOK() = 0;
+        va_list args;
+        va_start(args, format);
+        vsnprintf(buffer, 1024, format, args);
 
-      protected:
-        void SetErrorEx(const char* format, ...)
-        {
-            char buffer[1024];
+        SetError(buffer);
 
-            va_list args;
-            va_start(args, format);
-            vsnprintf(buffer, 1024, format, args);
+        va_end(args);
+    }
+};
 
-            SetError(buffer);
+// An abstract SteamAsyncWorker for Steam callback API.
+class SteamCallbackAsyncWorker : public SteamAsyncWorker
+{
+  public:
+    SteamCallbackAsyncWorker(Napi::Function &callback);
+    ~SteamCallbackAsyncWorker();
 
-            va_end(args);
-        }
-    };
+    virtual void Execute() = 0;
+    // virtual void OnOK() = 0;
 
-    // An abstract SteamAsyncWorker for Steam callback API.
-    class SteamCallbackAsyncWorker : public SteamAsyncWorker
-    {
-      public:
-        SteamCallbackAsyncWorker(Napi::Function& callback);
-        ~SteamCallbackAsyncWorker();
+    void WaitForCompleted();
 
-        virtual void Execute() = 0;
-        // virtual void OnOK() = 0;
-
-        void WaitForCompleted();
-
-      protected:
-        bool is_completed_;
-    };
-} // namespace greenworks
+  protected:
+    bool is_completed_;
+};
 
 #endif // SRC_STEAM_ASYNC_WORKER_H_

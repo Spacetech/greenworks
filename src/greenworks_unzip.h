@@ -19,10 +19,6 @@
 #ifndef GREENWORKS_UNZIP_H_
 #define GREENWORKS_UNZIP_H_
 
-namespace greenworks
-{
-	int unzip(const char* zipfilename, const char* dirname, const char* password);
-} // namespace greenworks
+int unzip(const char *zipfilename, const char *dirname, const char *password);
 
 #endif // GREENWORKS_UNZIP_H_
-

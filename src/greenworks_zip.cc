@@ -61,351 +61,348 @@
 #define WRITEBUFFERSIZE (16384)
 #define MAXFILENAME (256)
 
-namespace
+#ifdef _WIN32
+/* char *f: name of file to get info on */
+/* tm_zip *tmzip: return value: access, modific. and creation times */
+/* uLong *dt: dostime */
+uLong filetime(const char *f, tm_zip *tmzip, uLong *dt)
 {
-#ifdef _WIN32
-    /* char *f: name of file to get info on */
-    /* tm_zip *tmzip: return value: access, modific. and creation times */
-    /* uLong *dt: dostime */
-    uLong filetime(const char* f, tm_zip* tmzip, uLong* dt)
+    int ret = 0;
     {
-        int ret = 0;
-        {
-            FILETIME ftLocal;
-            HANDLE hFind;
-            WIN32_FIND_DATAA ff32;
+        FILETIME ftLocal;
+        HANDLE hFind;
+        WIN32_FIND_DATAA ff32;
 
-            hFind = FindFirstFileA(f, &ff32);
-            if (hFind != INVALID_HANDLE_VALUE)
-            {
-                FileTimeToLocalFileTime(&(ff32.ftLastWriteTime), &ftLocal);
-                FileTimeToDosDateTime(&ftLocal, reinterpret_cast<LPWORD>(dt) + 1, reinterpret_cast<LPWORD>(dt) + 0);
-                FindClose(hFind);
-                ret = 1;
-            }
+        hFind = FindFirstFileA(f, &ff32);
+        if (hFind != INVALID_HANDLE_VALUE)
+        {
+            FileTimeToLocalFileTime(&(ff32.ftLastWriteTime), &ftLocal);
+            FileTimeToDosDateTime(&ftLocal, reinterpret_cast<LPWORD>(dt) + 1, reinterpret_cast<LPWORD>(dt) + 0);
+            FindClose(hFind);
+            ret = 1;
         }
-        return ret;
     }
+    return ret;
+}
 #else
-    uLong filetime(const char* f, tm_zip* tmzip, uLong* dt)
+uLong filetime(const char *f, tm_zip *tmzip, uLong *dt)
+{
+    int ret = 0;
+    struct stat s; /* results of stat() */
+    struct tm *filedate;
+    time_t tm_t = 0;
+
+    if (strcmp(f, "-") != 0)
     {
-        int ret = 0;
-        struct stat s; /* results of stat() */
-        struct tm* filedate;
-        time_t tm_t = 0;
+        char name[MAXFILENAME + 1];
+        int len = strlen(f);
+        if (len > MAXFILENAME)
+            len = MAXFILENAME;
 
-        if (strcmp(f, "-") != 0)
+        strncpy(name, f, MAXFILENAME - 1);
+        /* strncpy doesnt append the trailing nullptr, of the string is too long. */
+        name[MAXFILENAME] = '\0';
+
+        if (name[len - 1] == '/')
+            name[len - 1] = '\0';
+        /* not all systems allow stat'ing a file with / appended */
+        if (stat(name, &s) == 0)
         {
-            char name[MAXFILENAME + 1];
-            int len = strlen(f);
-            if (len > MAXFILENAME)
-                len = MAXFILENAME;
-
-            strncpy(name, f, MAXFILENAME - 1);
-            /* strncpy doesnt append the trailing nullptr, of the string is too long. */
-            name[MAXFILENAME] = '\0';
-
-            if (name[len - 1] == '/')
-                name[len - 1] = '\0';
-            /* not all systems allow stat'ing a file with / appended */
-            if (stat(name, &s) == 0)
-            {
-                tm_t = s.st_mtime;
-                ret = 1;
-            }
+            tm_t = s.st_mtime;
+            ret = 1;
         }
-        filedate = localtime(&tm_t);
-
-        tmzip->tm_sec = filedate->tm_sec;
-        tmzip->tm_min = filedate->tm_min;
-        tmzip->tm_hour = filedate->tm_hour;
-        tmzip->tm_mday = filedate->tm_mday;
-        tmzip->tm_mon = filedate->tm_mon;
-        tmzip->tm_year = filedate->tm_year;
-
-        return ret;
     }
+    filedate = localtime(&tm_t);
+
+    tmzip->tm_sec = filedate->tm_sec;
+    tmzip->tm_min = filedate->tm_min;
+    tmzip->tm_hour = filedate->tm_hour;
+    tmzip->tm_mday = filedate->tm_mday;
+    tmzip->tm_mon = filedate->tm_mon;
+    tmzip->tm_year = filedate->tm_year;
+
+    return ret;
+}
 #endif
 
-    /* calculate the CRC32 of a file, because to encrypt a file, we need known the CRC32 of the file before */
-    // int getFileCrc(const char* filenameinzip, void* buf, unsigned long size_buf, unsigned long* result_crc)
-    // {
-    // 	unsigned long calculate_crc = 0;
-    // 	int err = ZIP_OK;
-    // 	FILE* fin = fopen(filenameinzip, "rb");
-    // 	unsigned long size_read;
-    // 	unsigned long total_read = 0;
-    // 	if (fin == nullptr)
-    // 	{
-    // 		err = ZIP_ERRNO;
-    // 	}
+/* calculate the CRC32 of a file, because to encrypt a file, we need known the CRC32 of the file before */
+// int getFileCrc(const char* filenameinzip, void* buf, unsigned long size_buf, unsigned long* result_crc)
+// {
+// 	unsigned long calculate_crc = 0;
+// 	int err = ZIP_OK;
+// 	FILE* fin = fopen(filenameinzip, "rb");
+// 	unsigned long size_read;
+// 	unsigned long total_read = 0;
+// 	if (fin == nullptr)
+// 	{
+// 		err = ZIP_ERRNO;
+// 	}
 
-    // 	if (err == ZIP_OK)
-    // 		do
-    // 		{
-    // 			err = ZIP_OK;
-    // 			size_read = static_cast<int>(fread(buf, 1, size_buf, fin));
-    // 			if (size_read < size_buf)
-    // 				if (feof(fin) == 0)
-    // 				{
-    // 					err = ZIP_ERRNO;
-    // 				}
+// 	if (err == ZIP_OK)
+// 		do
+// 		{
+// 			err = ZIP_OK;
+// 			size_read = static_cast<int>(fread(buf, 1, size_buf, fin));
+// 			if (size_read < size_buf)
+// 				if (feof(fin) == 0)
+// 				{
+// 					err = ZIP_ERRNO;
+// 				}
 
-    // 			if (size_read > 0)
-    // 				calculate_crc = crc32(calculate_crc, static_cast<const Bytef*>(buf), size_read);
-    // 			total_read += size_read;
-    // 		}
-    // 		while ((err == ZIP_OK) && (size_read > 0));
+// 			if (size_read > 0)
+// 				calculate_crc = crc32(calculate_crc, static_cast<const Bytef*>(buf), size_read);
+// 			total_read += size_read;
+// 		}
+// 		while ((err == ZIP_OK) && (size_read > 0));
 
-    // 	if (fin)
-    // 		fclose(fin);
+// 	if (fin)
+// 		fclose(fin);
 
-    // 	*result_crc = calculate_crc;
-    // 	return err;
-    // }
+// 	*result_crc = calculate_crc;
+// 	return err;
+// }
 
-    int isLargeFile(const char* filename)
+int isLargeFile(const char *filename)
+{
+    int largeFile = 0;
+    ZPOS64_T pos;
+    FILE *pFile = fopen64(filename, "rb");
+
+    if (pFile != nullptr)
     {
-        int largeFile = 0;
-        ZPOS64_T pos;
-        FILE* pFile = fopen64(filename, "rb");
+        fseeko64(pFile, 0, SEEK_END);
+        pos = ftello64(pFile);
 
-        if (pFile != nullptr)
-        {
-            fseeko64(pFile, 0, SEEK_END);
-            pos = ftello64(pFile);
+        if (pos >= 0xffffffff)
+            largeFile = 1;
 
-            if (pos >= 0xffffffff)
-                largeFile = 1;
-
-            fclose(pFile);
-        }
-
-        return largeFile;
+        fclose(pFile);
     }
 
-    std::string PathCombine(std::string path1, std::string path2)
-    {
-        char path[PATH_MAX];
+    return largeFile;
+}
 
-        strcpy(path, path1.c_str());
+std::string PathCombine(std::string path1, std::string path2)
+{
+    char path[PATH_MAX];
+
+    strcpy(path, path1.c_str());
 #ifdef _WIN32
-        strcat(path, "\\\\");
+    strcat(path, "\\\\");
 #else
-        strcat(path, "/");
+    strcat(path, "/");
 #endif
-        strcat(path, path2.c_str());
+    strcat(path, path2.c_str());
 
-        //puts(path);
+    // puts(path);
 
-        return path;
+    return path;
+}
+
+std::vector<std::string> GetDirectoryList(const std::string &dir)
+{
+    DIR *d;
+    std::vector<std::string> ret;
+
+    /* Open the directory specified by "dir_name". */
+    d = opendir(dir.c_str());
+
+    /* Check it was opened. */
+    if (!d)
+    {
+        // fprintf(stderr, "Cannot open directory '%s': %s\n", dir, strerror(errno));
+        return ret;
     }
 
-    std::vector<std::string> GetDirectoryList(const std::string& dir)
+    while (1)
     {
-        DIR* d;
-        std::vector<std::string> ret;
+        struct dirent *entry;
+        const char *d_name;
 
-        /* Open the directory specified by "dir_name". */
-        d = opendir(dir.c_str());
+        /* "Readdir" gets subsequent entries from "d". */
+        entry = readdir(d);
 
-        /* Check it was opened. */
-        if (!d)
+        if (!entry)
         {
-            // fprintf(stderr, "Cannot open directory '%s': %s\n", dir, strerror(errno));
-            return ret;
+            /* There are no more entries in this directory, so break out of the while loop. */
+            break;
         }
 
-        while (1)
+        d_name = entry->d_name;
+
+        /* See if "entry" is a subdirectory of "d". */
+        if (entry->d_type & DT_DIR)
         {
-            struct dirent* entry;
-            const char* d_name;
-
-            /* "Readdir" gets subsequent entries from "d". */
-            entry = readdir(d);
-
-            if (!entry)
+            /* Check that the directory is not "d" or d's parent. */
+            if (strcmp(d_name, "..") != 0 && strcmp(d_name, ".") != 0)
             {
-                /* There are no more entries in this directory, so break out of the while loop. */
-                break;
-            }
+                size_t path_length;
+                char path[PATH_MAX];
 
-            d_name = entry->d_name;
-
-            /* See if "entry" is a subdirectory of "d". */
-            if (entry->d_type & DT_DIR)
-            {
-                /* Check that the directory is not "d" or d's parent. */
-                if (strcmp(d_name, "..") != 0 && strcmp(d_name, ".") != 0)
-                {
-                    size_t path_length;
-                    char path[PATH_MAX];
-
-                    strcpy(path, dir.c_str());
+                strcpy(path, dir.c_str());
 #ifdef WIN32
-                    strcat(path, "\\\\");
+                strcat(path, "\\\\");
 #else
-                    strcat(path, "/");
+                strcat(path, "/");
 #endif
-                    strcat(path, d_name);
+                strcat(path, d_name);
 
-                    //puts(path);
+                // puts(path);
 
-                    path_length = strlen(path);
+                path_length = strlen(path);
 
-                    if (path_length >= PATH_MAX)
-                    {
-                        fprintf(stderr, "Path length is too long: %s.\n", path);
-                        exit(EXIT_FAILURE);
-                    }
-                    std::vector<std::string> rret = GetDirectoryList(path);
-                    ret.insert(ret.end(), rret.begin(), rret.end());
+                if (path_length >= PATH_MAX)
+                {
+                    fprintf(stderr, "Path length is too long: %s.\n", path);
+                    exit(EXIT_FAILURE);
                 }
+                std::vector<std::string> rret = GetDirectoryList(path);
+                ret.insert(ret.end(), rret.begin(), rret.end());
             }
-            else
-            {
-                ret.push_back(PathCombine(dir, entry->d_name));
-            }
-        }
-        /* After going through all the entries, close the directory. */
-        if (closedir(d))
-        {
-            // fprintf(stderr, "Could not close '%s': %s\n", dir, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        return ret;
-    }
-} // namespace
-
-namespace greenworks
-{
-    int zip(const char* targetFile, const char* sourceDir, int compressionLevel, const char* password)
-    {
-        // compressionLevel 0-9 (store only - best)
-        int opt_overwrite = 1; // Overwrite existing zip file
-        int opt_compress_level = compressionLevel;
-        char filename_try[MAXFILENAME + 16];
-        int err = 0;
-        int size_buf;
-        void* buf;
-        int i, len;
-        int dot_found = 0;
-
-        size_buf = WRITEBUFFERSIZE;
-        buf = static_cast<void*>(malloc(size_buf));
-        if (buf == nullptr)
-            return ZIP_INTERNALERROR;
-
-        strncpy(filename_try, targetFile, MAXFILENAME - 1);
-        // strncpy doesnt append the trailing nullptr, of the string is too long.
-        filename_try[MAXFILENAME] = '\0';
-
-        len = static_cast<int>(strlen(filename_try));
-        for (i = 0; i < len; i++)
-        {
-            if (filename_try[i] == '.')
-                dot_found = 1;
-        }
-
-        if (dot_found == 0)
-        {
-            strcat(filename_try, ".zip");
-        }
-
-        zipFile zf;
-
-#ifdef USEWIN32IOAPI
-        zlib_filefunc64_def ffunc;
-        fill_win32_filefunc64A(&ffunc);
-        zf = zipOpen2_64(filename_try, (opt_overwrite == 2) ? 2 : 0, nullptr, &ffunc);
-#else
-        zf = zipOpen64(filename_try, (opt_overwrite == 2) ? 2 : 0);
-#endif
-
-        if (zf == nullptr)
-            err = ZIP_ERRNO;
-
-        std::vector<std::string> files = GetDirectoryList(sourceDir);
-        if (files.size() <= 0)
-        {
-            err = ZIP_PARAMERROR;
         }
         else
         {
-            std::vector<std::string>::iterator itr;
-            for (itr = files.begin(); itr < files.end(); ++itr)
-            {
-                const char* filenameinzip = itr->c_str();
-                const char* savefilenameinzip;
+            ret.push_back(PathCombine(dir, entry->d_name));
+        }
+    }
+    /* After going through all the entries, close the directory. */
+    if (closedir(d))
+    {
+        // fprintf(stderr, "Could not close '%s': %s\n", dir, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 
-                FILE* fin;
-                int size_read;
-                zip_fileinfo zi;
-                unsigned long crcFile = 0;
-                int zip64;
+    return ret;
+}
 
-                zi.tmz_date.tm_sec = zi.tmz_date.tm_min = zi.tmz_date.tm_hour = zi.tmz_date.tm_mday = zi.tmz_date.tm_mon = zi.tmz_date.tm_year = 0;
-                zi.dosDate = 0;
-                zi.internal_fa = 0;
-                zi.external_fa = 0;
+int zip(const char *targetFile, const char *sourceDir, int compressionLevel, const char *password)
+{
+    // compressionLevel 0-9 (store only - best)
+    int opt_overwrite = 1; // Overwrite existing zip file
+    int opt_compress_level = compressionLevel;
+    char filename_try[MAXFILENAME + 16];
+    int err = 0;
+    int size_buf;
+    void *buf;
+    int i, len;
+    int dot_found = 0;
 
-                filetime(filenameinzip, &zi.tmz_date, &zi.dosDate);
+    size_buf = WRITEBUFFERSIZE;
+    buf = static_cast<void *>(malloc(size_buf));
+    if (buf == nullptr)
+        return ZIP_INTERNALERROR;
 
-                // if ((password != nullptr && strlen(password) > 0) && (err == ZIP_OK))
-                // 	getFileCrc(filenameinzip, buf, size_buf, &crcFile);
+    strncpy(filename_try, targetFile, MAXFILENAME - 1);
+    // strncpy doesnt append the trailing nullptr, of the string is too long.
+    filename_try[MAXFILENAME] = '\0';
 
-                zip64 = isLargeFile(filenameinzip);
+    len = static_cast<int>(strlen(filename_try));
+    for (i = 0; i < len; i++)
+    {
+        if (filename_try[i] == '.')
+            dot_found = 1;
+    }
 
-                // The path name saved, should not include a leading slash.
-                // if it did, windows/xp and dynazip couldn't read the zip file.
-#ifdef WIN32
-                std::string baseDir = itr->substr(std::string(sourceDir).rfind('\\') + 1);
+    if (dot_found == 0)
+    {
+        strcat(filename_try, ".zip");
+    }
+
+    zipFile zf;
+
+#ifdef USEWIN32IOAPI
+    zlib_filefunc64_def ffunc;
+    fill_win32_filefunc64A(&ffunc);
+    zf = zipOpen2_64(filename_try, (opt_overwrite == 2) ? 2 : 0, nullptr, &ffunc);
 #else
-                std::string baseDir = itr->substr(std::string(sourceDir).rfind('/') + 1);
+    zf = zipOpen64(filename_try, (opt_overwrite == 2) ? 2 : 0);
 #endif
 
-                savefilenameinzip = baseDir.c_str();
+    if (zf == nullptr)
+        err = ZIP_ERRNO;
 
-                while (savefilenameinzip[0] == '\\' || savefilenameinzip[0] == '/')
-                    savefilenameinzip++;
-
-                // Using 4 for unicode compatibility (UTF8) -- tested with chinese, does not work as expected
-                err = zipOpenNewFileInZip4_64(zf, savefilenameinzip, &zi, nullptr, 0, nullptr, 0, nullptr, (opt_compress_level != 0) ? Z_DEFLATED : 0, opt_compress_level, 0, -MAX_WBITS, DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY, password, crcFile, 36, 1 << 11, zip64);
-
-                if (err != ZIP_OK)
-                    break;
-
-                fin = fopen64(filenameinzip, "rb");
-                if (fin == nullptr)
-                    err = ZIP_ERRNO;
-
-                if (err == ZIP_OK)
-                {
-                    do
-                    {
-                        err = ZIP_OK;
-                        size_read = static_cast<int>(fread(buf, 1, size_buf, fin));
-                        if (size_read < size_buf)
-                            if (feof(fin) == 0)
-                                err = ZIP_ERRNO;
-
-                        if (size_read > 0)
-                        {
-                            err = zipWriteInFileInZip(zf, buf, size_read);
-                        }
-                    } while ((err == ZIP_OK) && (size_read > 0));
-                }
-                if (fin)
-                    fclose(fin);
-                if (err < 0)
-                    err = ZIP_ERRNO;
-                else
-                    err = zipCloseFileInZip(zf);
-            }
-        }
-        zipClose(zf, nullptr);
-        free(buf);
-        return err;
+    std::vector<std::string> files = GetDirectoryList(sourceDir);
+    if (files.size() <= 0)
+    {
+        err = ZIP_PARAMERROR;
     }
-} // namespace greenworks
+    else
+    {
+        std::vector<std::string>::iterator itr;
+        for (itr = files.begin(); itr < files.end(); ++itr)
+        {
+            const char *filenameinzip = itr->c_str();
+            const char *savefilenameinzip;
+
+            FILE *fin;
+            int size_read;
+            zip_fileinfo zi;
+            unsigned long crcFile = 0;
+            int zip64;
+
+            zi.tmz_date.tm_sec = zi.tmz_date.tm_min = zi.tmz_date.tm_hour = zi.tmz_date.tm_mday = zi.tmz_date.tm_mon =
+                zi.tmz_date.tm_year = 0;
+            zi.dosDate = 0;
+            zi.internal_fa = 0;
+            zi.external_fa = 0;
+
+            filetime(filenameinzip, &zi.tmz_date, &zi.dosDate);
+
+            // if ((password != nullptr && strlen(password) > 0) && (err == ZIP_OK))
+            // 	getFileCrc(filenameinzip, buf, size_buf, &crcFile);
+
+            zip64 = isLargeFile(filenameinzip);
+
+            // The path name saved, should not include a leading slash.
+            // if it did, windows/xp and dynazip couldn't read the zip file.
+#ifdef WIN32
+            std::string baseDir = itr->substr(std::string(sourceDir).rfind('\\') + 1);
+#else
+            std::string baseDir = itr->substr(std::string(sourceDir).rfind('/') + 1);
+#endif
+
+            savefilenameinzip = baseDir.c_str();
+
+            while (savefilenameinzip[0] == '\\' || savefilenameinzip[0] == '/')
+                savefilenameinzip++;
+
+            // Using 4 for unicode compatibility (UTF8) -- tested with chinese, does not work as expected
+            err = zipOpenNewFileInZip4_64(zf, savefilenameinzip, &zi, nullptr, 0, nullptr, 0, nullptr,
+                                          (opt_compress_level != 0) ? Z_DEFLATED : 0, opt_compress_level, 0, -MAX_WBITS,
+                                          DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY, password, crcFile, 36, 1 << 11, zip64);
+
+            if (err != ZIP_OK)
+                break;
+
+            fin = fopen64(filenameinzip, "rb");
+            if (fin == nullptr)
+                err = ZIP_ERRNO;
+
+            if (err == ZIP_OK)
+            {
+                do
+                {
+                    err = ZIP_OK;
+                    size_read = static_cast<int>(fread(buf, 1, size_buf, fin));
+                    if (size_read < size_buf)
+                        if (feof(fin) == 0)
+                            err = ZIP_ERRNO;
+
+                    if (size_read > 0)
+                    {
+                        err = zipWriteInFileInZip(zf, buf, size_read);
+                    }
+                } while ((err == ZIP_OK) && (size_read > 0));
+            }
+            if (fin)
+                fclose(fin);
+            if (err < 0)
+                err = ZIP_ERRNO;
+            else
+                err = zipCloseFileInZip(zf);
+        }
+    }
+    zipClose(zf, nullptr);
+    free(buf);
+    return err;
+}
