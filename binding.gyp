@@ -97,6 +97,7 @@
           '<(steamworks_sdk_dir)/redistributable_bin/<(redist_bin_dir)/<(lib_steam)'
         ]
       },
+      'defines': [ 'NAPI_DISABLE_CPP_EXCEPTIONS' ],
       'conditions': [
         ['OS== "linux"',
           {
