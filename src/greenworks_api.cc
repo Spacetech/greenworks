@@ -22,8 +22,6 @@
 
 #define SET_FUNCTION_TPL(function_name, function) tpl.Set(function_name, Napi::Function::New(env, function))
 
-#define MESSAGE_CHANNEL 0
-
 SteamCallbacks *steamCallbacks = nullptr;
 
 Napi::Object GetSteamUserCountType(Napi::Env env, int type_id)
@@ -115,23 +113,23 @@ Napi::Value GetSteamId(const Napi::CallbackInfo &info)
     (flags).Set("lobby", Napi::Boolean::New(env, user_id.IsLobby()));
 
     Napi::Object result = Napi::Object::New(env);
-    result.Set("flags", flags);
-    result.Set("type", GetSteamUserCountType(env, user_id.GetEAccountType()));
-    result.Set("accountId", Napi::Number::New(env, user_id.GetAccountID()));
-    result.Set("staticAccountId", Napi::String::New(env, utils::uint64ToString(user_id.GetStaticAccountKey())));
-    result.Set("steamId", Napi::String::New(env, utils::uint64ToString(user_id.ConvertToUint64())));
-    result.Set("isValid", Napi::Number::New(env, user_id.IsValid()));
-    result.Set("level", Napi::Number::New(env, SteamUser()->GetPlayerSteamLevel()));
+    (result).Set("flags", flags);
+    (result).Set("type", GetSteamUserCountType(env, user_id.GetEAccountType()));
+    (result).Set("accountId", Napi::Number::New(env, user_id.GetAccountID()));
+    (result).Set("staticAccountId", Napi::String::New(env, utils::uint64ToString(user_id.GetStaticAccountKey())));
+    (result).Set("steamId", Napi::String::New(env, utils::uint64ToString(user_id.ConvertToUint64())));
+    (result).Set("isValid", Napi::Number::New(env, user_id.IsValid()));
+    (result).Set("level", Napi::Number::New(env, SteamUser()->GetPlayerSteamLevel()));
 
     if (!SteamFriends()->RequestUserInformation(user_id, true))
     {
-        result.Set("screenName", Napi::String::New(env, SteamFriends()->GetFriendPersonaName(user_id)));
+        (result).Set("screenName", Napi::String::New(env, SteamFriends()->GetFriendPersonaName(user_id)));
     }
     else
     {
         std::ostringstream sout;
         sout << user_id.GetAccountID();
-        result.Set("screenName", Napi::String::New(env, sout.str()));
+        (result).Set("screenName", Napi::String::New(env, sout.str()));
     }
 
     return result;
@@ -1250,164 +1248,15 @@ Napi::Value GetRelayNetworkStatus(const Napi::CallbackInfo &info)
 
     Napi::Object result = Napi::Object::New(env);
 
-    result.Set("availabilitySummary", Napi::Number::New(env, status.m_eAvail));
-    result.Set("availabilityNetworkConfig", Napi::Number::New(env, status.m_eAvailNetworkConfig));
-    result.Set("availabilityAnyRelay", Napi::Number::New(env, status.m_eAvailAnyRelay));
-    result.Set("debugMessage", Napi::String::New(env, status.m_debugMsg));
+    (result).Set("availabilitySummary", Napi::Number::New(env, status.m_eAvail));
+    (result).Set("availabilityNetworkConfig", Napi::Number::New(env, status.m_eAvailNetworkConfig));
+    (result).Set("availabilityAnyRelay", Napi::Number::New(env, status.m_eAvailAnyRelay));
+    (result).Set("debugMessage", Napi::String::New(env, status.m_debugMsg));
 
     return result;
 }
 
-Napi::Value AcceptSessionWithUser(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    if (info.Length() < 1 || !info[0].IsString())
-    {
-        THROW_BAD_ARGS("Bad arguments");
-    }
-
-    std::string steamIdString = info[0].ToString().Utf8Value();
-
-    SteamNetworkingIdentity steamNetworkingIdentity;
-    steamNetworkingIdentity.SetSteamID64(utils::strToUint64(steamIdString));
-
-    bool result = SteamNetworkingMessages()->AcceptSessionWithUser(steamNetworkingIdentity);
-
-    return Napi::Boolean::New(env, result);
-}
-
-Napi::Value SendMessageToUser(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsTypedArray())
-    {
-        THROW_BAD_ARGS("Bad arguments");
-    }
-
-    std::string steamIdString = info[0].ToString().Utf8Value();
-
-    Napi::Uint8Array array = info[1].As<Napi::TypedArray>().As<Napi::Uint8Array>();
-    uint8_t *dst = array.Data();
-    uint32 length = sizeof(uint8_t) * array.ByteLength();
-
-    SteamNetworkingIdentity steamNetworkingIdentity;
-    steamNetworkingIdentity.SetSteamID64(utils::strToUint64(steamIdString));
-
-    EResult result = SteamNetworkingMessages()->SendMessageToUser(
-        steamNetworkingIdentity, dst, length,
-        k_nSteamNetworkingSend_ReliableNoNagle | k_nSteamNetworkingSend_AutoRestartBrokenSession, MESSAGE_CHANNEL);
-
-    return Napi::Number::New(env, result);
-}
-
-Napi::Value CloseSessionWithUser(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    if (info.Length() < 1 || !info[0].IsString())
-    {
-        THROW_BAD_ARGS("Bad arguments");
-    }
-
-    std::string steamIdString = info[0].ToString().Utf8Value();
-
-    SteamNetworkingIdentity steamNetworkingIdentity;
-    steamNetworkingIdentity.SetSteamID64(utils::strToUint64(steamIdString));
-
-    bool result = SteamNetworkingMessages()->CloseSessionWithUser(steamNetworkingIdentity);
-
-    return Napi::Boolean::New(env, result);
-}
-
-Napi::Value GetSessionConnectionInfo(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    if (info.Length() < 1 || !info[0].IsString())
-    {
-        THROW_BAD_ARGS("Bad arguments");
-    }
-
-    std::string steamIdString = info[0].ToString().Utf8Value();
-
-    SteamNetworkingIdentity steamNetworkingIdentity;
-    steamNetworkingIdentity.SetSteamID64(utils::strToUint64(steamIdString));
-
-    SteamNetConnectionInfo_t connectionInfo;
-    SteamNetworkingMessages()->GetSessionConnectionInfo(steamNetworkingIdentity, &connectionInfo, nullptr);
-
-    Napi::Object result = Napi::Object::New(env);
-
-    result.Set("state", Napi::Number::New(env, connectionInfo.m_eState));
-    result.Set("endReason", Napi::Number::New(env, connectionInfo.m_eEndReason));
-    result.Set("connectionDescription", Napi::String::New(env, connectionInfo.m_szConnectionDescription));
-    result.Set("endDebug", Napi::String::New(env, connectionInfo.m_szEndDebug));
-
-    return result;
-}
-
-SteamNetworkingMessage_t *networkingMessage;
-
-Napi::Value ReceiveMessagesOnChannel(const Napi::CallbackInfo &info)
-{
-    Napi::Env env = info.Env();
-
-    if (info.Length() < 1 || !info[0].IsNumber())
-    {
-        THROW_BAD_ARGS("Bad arguments");
-    }
-
-    uint32 length = info[0].ToNumber().Uint32Value();
-
-    bool useProvidedArray = info.Length() > 1 && info[1].IsTypedArray();
-
-    Napi::Uint8Array array;
-
-    if (useProvidedArray)
-    {
-        array = info[1].As<Napi::TypedArray>().As<Napi::Uint8Array>();
-
-        if (array.ByteLength() < length)
-        {
-            THROW_BAD_ARGS("Bad arguments");
-        }
-    }
-    else
-    {
-        array = Napi::Uint8Array::New(env, length);
-    }
-
-    if (networkingMessage == nullptr)
-    {
-        networkingMessage = SteamNetworkingUtils()->AllocateMessage(0);
-    }
-
-    networkingMessage->m_pData = array.Data();
-    networkingMessage->m_cbSize = sizeof(uint8_t) * length;
-
-    int messageCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(MESSAGE_CHANNEL, &networkingMessage, 1);
-    if (messageCount != 0)
-    {
-        auto steamIdRemoteString =
-            Napi::String::New(env, utils::uint64ToString(networkingMessage->m_identityPeer.GetSteamID64()));
-
-        if (useProvidedArray)
-        {
-            return steamIdRemoteString;
-        }
-
-        Napi::Object result = Napi::Object::New(env);
-        result.Set("steamIdRemote", steamIdRemoteString);
-        result.Set("data", array);
-        return result;
-    }
-
-    return env.Undefined();
-}
-
-Napi::Value SetSteamNetworkingMessagesSessionRequestCallback(const Napi::CallbackInfo &info)
+Napi::Value SetP2PSessionRequestCallback(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -1421,17 +1270,17 @@ Napi::Value SetSteamNetworkingMessagesSessionRequestCallback(const Napi::Callbac
         THROW_BAD_ARGS("Internal error");
     }
 
-    if (!steamCallbacks->OnSteamNetworkingMessagesSessionRequestCallback.IsEmpty())
+    if (!steamCallbacks->OnP2PSessionRequestCallback.IsEmpty())
     {
-        steamCallbacks->OnSteamNetworkingMessagesSessionRequestCallback.Reset();
+        steamCallbacks->OnP2PSessionRequestCallback.Reset();
     }
 
-    steamCallbacks->OnSteamNetworkingMessagesSessionRequestCallback = Napi::Persistent(info[0].As<Napi::Function>());
+    steamCallbacks->OnP2PSessionRequestCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
     return env.Undefined();
 }
 
-Napi::Value SetSteamNetworkingMessagesSessionFailedCallback(const Napi::CallbackInfo &info)
+Napi::Value SetP2PSessionConnectFailCallback(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -1445,63 +1294,15 @@ Napi::Value SetSteamNetworkingMessagesSessionFailedCallback(const Napi::Callback
         THROW_BAD_ARGS("Internal error");
     }
 
-    if (!steamCallbacks->OnSteamNetworkingMessagesSessionFailedCallback.IsEmpty())
+    if (!steamCallbacks->OnP2PSessionConnectFailCallback.IsEmpty())
     {
-        steamCallbacks->OnSteamNetworkingMessagesSessionFailedCallback.Reset();
+        steamCallbacks->OnP2PSessionConnectFailCallback.Reset();
     }
 
-    steamCallbacks->OnSteamNetworkingMessagesSessionFailedCallback = Napi::Persistent(info[0].As<Napi::Function>());
+    steamCallbacks->OnP2PSessionConnectFailCallback = Napi::Persistent(info[0].As<Napi::Function>());
 
     return env.Undefined();
 }
-
-// Napi::Value SetP2PSessionRequestCallback(const Napi::CallbackInfo &info)
-// {
-//     Napi::Env env = info.Env();
-
-//     if (info.Length() < 1 || !info[0].IsFunction())
-//     {
-//         THROW_BAD_ARGS("Bad arguments");
-//     }
-
-//     if (steamCallbacks == nullptr)
-//     {
-//         THROW_BAD_ARGS("Internal error");
-//     }
-
-//     if (!steamCallbacks->OnP2PSessionRequestCallback.IsEmpty())
-//     {
-//         steamCallbacks->OnP2PSessionRequestCallback.Reset();
-//     }
-
-//     steamCallbacks->OnP2PSessionRequestCallback = Napi::Persistent(info[0].As<Napi::Function>());
-
-//     return env.Undefined();
-// }
-
-// Napi::Value SetP2PSessionConnectFailCallback(const Napi::CallbackInfo &info)
-// {
-//     Napi::Env env = info.Env();
-
-//     if (info.Length() < 1 || !info[0].IsFunction())
-//     {
-//         THROW_BAD_ARGS("Bad arguments");
-//     }
-
-//     if (steamCallbacks == nullptr)
-//     {
-//         THROW_BAD_ARGS("Internal error");
-//     }
-
-//     if (!steamCallbacks->OnP2PSessionConnectFailCallback.IsEmpty())
-//     {
-//         steamCallbacks->OnP2PSessionConnectFailCallback.Reset();
-//     }
-
-//     steamCallbacks->OnP2PSessionConnectFailCallback = Napi::Persistent(info[0].As<Napi::Function>());
-
-//     return env.Undefined();
-// }
 
 Napi::Value AcceptP2PSessionWithUser(const Napi::CallbackInfo &info)
 {
@@ -1603,8 +1404,8 @@ Napi::Value ReadP2PPacket(const Napi::CallbackInfo &info)
         else
         {
             Napi::Object result = Napi::Object::New(env);
-            result.Set("steamIdRemote", steamIdRemoteString);
-            result.Set("data", array);
+            (result).Set("steamIdRemote", steamIdRemoteString);
+            (result).Set("data", array);
             return result;
         }
     }
@@ -1631,10 +1432,10 @@ Napi::Value GetP2PSessionState(const Napi::CallbackInfo &info)
     if (success)
     {
         Napi::Object result = Napi::Object::New(env);
-        result.Set("connectionActive", Napi::Number::New(env, sessionState.m_bConnectionActive));
-        result.Set("connecting", Napi::Number::New(env, sessionState.m_bConnecting));
-        result.Set("lastError", Napi::Number::New(env, sessionState.m_eP2PSessionError));
-        result.Set("usingRelay", Napi::Number::New(env, sessionState.m_bUsingRelay));
+        (result).Set("connectionActive", Napi::Number::New(env, sessionState.m_bConnectionActive));
+        (result).Set("connecting", Napi::Number::New(env, sessionState.m_bConnecting));
+        (result).Set("lastError", Napi::Number::New(env, sessionState.m_eP2PSessionError));
+        (result).Set("usingRelay", Napi::Number::New(env, sessionState.m_bUsingRelay));
         return result;
     }
     else
@@ -1678,25 +1479,14 @@ void InitNetworkingObject(Napi::Env env, Napi::Object exports)
 
     SET_FUNCTION_TPL("initRelayNetworkAccess", InitRelayNetworkAccess);
     SET_FUNCTION_TPL("getRelayNetworkStatus", GetRelayNetworkStatus);
-
-    SET_FUNCTION_TPL("acceptSessionWithUser", AcceptSessionWithUser);
-    SET_FUNCTION_TPL("sendMessageToUser", SendMessageToUser);
-    SET_FUNCTION_TPL("closeSessionWithUser", CloseSessionWithUser);
-    SET_FUNCTION_TPL("getSessionConnectionInfo", GetSessionConnectionInfo);
-    SET_FUNCTION_TPL("receiveMessagesOnChannel", ReceiveMessagesOnChannel);
-    SET_FUNCTION_TPL("setSteamNetworkingMessagesSessionRequestCallback",
-                     SetSteamNetworkingMessagesSessionRequestCallback);
-    SET_FUNCTION_TPL("setSteamNetworkingMessagesSessionFailedCallback",
-                     SetSteamNetworkingMessagesSessionFailedCallback);
-
-    // SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);
-    // SET_FUNCTION_TPL("isP2PPacketAvailable", IsP2PPacketAvailable);
-    // SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
-    // SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
-    // SET_FUNCTION_TPL("getP2PSessionState", GetP2PSessionState);
-    // SET_FUNCTION_TPL("closeP2PSessionWithUser", CloseP2PSessionWithUser);
-    // SET_FUNCTION_TPL("setP2PSessionRequestCallback", SetP2PSessionRequestCallback);
-    // SET_FUNCTION_TPL("setP2PSessionConnectFailCallback", SetP2PSessionConnectFailCallback);
+    SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);
+    SET_FUNCTION_TPL("isP2PPacketAvailable", IsP2PPacketAvailable);
+    SET_FUNCTION_TPL("sendP2PPacket", SendP2PPacket);
+    SET_FUNCTION_TPL("readP2PPacket", ReadP2PPacket);
+    SET_FUNCTION_TPL("getP2PSessionState", GetP2PSessionState);
+    SET_FUNCTION_TPL("closeP2PSessionWithUser", CloseP2PSessionWithUser);
+    SET_FUNCTION_TPL("setP2PSessionRequestCallback", SetP2PSessionRequestCallback);
+    SET_FUNCTION_TPL("setP2PSessionConnectFailCallback", SetP2PSessionConnectFailCallback);
 
     (exports).Set("networking", tpl);
 }

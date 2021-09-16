@@ -14,9 +14,7 @@ SteamCallbacks::SteamCallbacks()
     : SETUP_STEAM_CALLBACK_MEMBER(OnGameOverlayActivated), SETUP_STEAM_CALLBACK_MEMBER(OnGameJoinRequested),
       SETUP_STEAM_CALLBACK_MEMBER(OnLobbyCreated), SETUP_STEAM_CALLBACK_MEMBER(OnLobbyEntered),
       SETUP_STEAM_CALLBACK_MEMBER(OnLobbyChatUpdate), SETUP_STEAM_CALLBACK_MEMBER(OnLobbyJoinRequested),
-      //   SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest), SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail)
-      SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingMessagesSessionRequest),
-      SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingMessagesSessionFailed)
+      SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest), SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail)
 {
 }
 
@@ -94,53 +92,27 @@ void SteamCallbacks::OnLobbyJoinRequested(GameLobbyJoinRequested_t *pCallback)
     }
 }
 
-void SteamCallbacks::OnSteamNetworkingMessagesSessionRequest(SteamNetworkingMessagesSessionRequest_t *pCallback)
+void SteamCallbacks::OnP2PSessionRequest(P2PSessionRequest_t *pCallback)
 {
-    if (!OnSteamNetworkingMessagesSessionRequestCallback.IsEmpty())
+    if (!OnP2PSessionRequestCallback.IsEmpty())
     {
-        Napi::Env env = OnSteamNetworkingMessagesSessionRequestCallback.Env();
+        Napi::Env env = OnP2PSessionRequestCallback.Env();
 
-        OnSteamNetworkingMessagesSessionRequestCallback.Call({
-            Napi::String::New(env, utils::uint64ToString(pCallback->m_identityRemote.GetSteamID64())),
+        OnP2PSessionRequestCallback.Call({
+            Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
         });
     }
 }
 
-void SteamCallbacks::OnSteamNetworkingMessagesSessionFailed(SteamNetworkingMessagesSessionFailed_t *pCallback)
+void SteamCallbacks::OnP2PSessionConnectFail(P2PSessionConnectFail_t *pCallback)
 {
-    if (!OnSteamNetworkingMessagesSessionFailedCallback.IsEmpty())
+    if (!OnP2PSessionConnectFailCallback.IsEmpty())
     {
-        Napi::Env env = OnSteamNetworkingMessagesSessionFailedCallback.Env();
+        Napi::Env env = OnP2PSessionConnectFailCallback.Env();
 
-        OnSteamNetworkingMessagesSessionFailedCallback.Call({
-            Napi::String::New(env, utils::uint64ToString(pCallback->m_info.m_identityRemote.GetSteamID64())),
-            Napi::Number::New(env, pCallback->m_info.m_eState),
-            Napi::Number::New(env, pCallback->m_info.m_eEndReason),            
+        OnP2PSessionConnectFailCallback.Call({
+            Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
+            Napi::Number::New(env, pCallback->m_eP2PSessionError),
         });
     }
 }
-
-// void SteamCallbacks::OnP2PSessionRequest(P2PSessionRequest_t *pCallback)
-// {
-//     if (!OnP2PSessionRequestCallback.IsEmpty())
-//     {
-//         Napi::Env env = OnP2PSessionRequestCallback.Env();
-
-//         OnP2PSessionRequestCallback.Call({
-//             Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
-//         });
-//     }
-// }
-
-// void SteamCallbacks::OnP2PSessionConnectFail(P2PSessionConnectFail_t *pCallback)
-// {
-//     if (!OnP2PSessionConnectFailCallback.IsEmpty())
-//     {
-//         Napi::Env env = OnP2PSessionConnectFailCallback.Env();
-
-//         OnP2PSessionConnectFailCallback.Call({
-//             Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
-//             Napi::Number::New(env, pCallback->m_eP2PSessionError),
-//         });
-//     }
-// }
