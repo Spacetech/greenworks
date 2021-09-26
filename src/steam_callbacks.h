@@ -31,6 +31,8 @@ class SteamCallbacks
     SETUP_STEAM_CALLBACK_DECLARATION(OnLobbyJoinRequested, GameLobbyJoinRequested_t);
     SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionRequest, P2PSessionRequest_t);
     SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionConnectFail, P2PSessionConnectFail_t);
+    SETUP_STEAM_CALLBACK_DECLARATION(OnSteamNetworkingMessagesSessionRequest, SteamNetworkingMessagesSessionRequest_t);
+    SETUP_STEAM_CALLBACK_DECLARATION(OnSteamNetworkingMessagesSessionFailed, SteamNetworkingMessagesSessionFailed_t);
 };
 
 #endif // SRC_STEAM_CALLBACKS_H_

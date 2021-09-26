@@ -14,7 +14,9 @@ SteamCallbacks::SteamCallbacks()
     : SETUP_STEAM_CALLBACK_MEMBER(OnGameOverlayActivated), SETUP_STEAM_CALLBACK_MEMBER(OnGameJoinRequested),
       SETUP_STEAM_CALLBACK_MEMBER(OnLobbyCreated), SETUP_STEAM_CALLBACK_MEMBER(OnLobbyEntered),
       SETUP_STEAM_CALLBACK_MEMBER(OnLobbyChatUpdate), SETUP_STEAM_CALLBACK_MEMBER(OnLobbyJoinRequested),
-      SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest), SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail)
+      SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest), SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail),
+      SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingMessagesSessionRequest),
+      SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingMessagesSessionFailed)
 {
 }
 
@@ -113,6 +115,32 @@ void SteamCallbacks::OnP2PSessionConnectFail(P2PSessionConnectFail_t *pCallback)
         OnP2PSessionConnectFailCallback.Call({
             Napi::String::New(env, utils::uint64ToString(pCallback->m_steamIDRemote.ConvertToUint64())),
             Napi::Number::New(env, pCallback->m_eP2PSessionError),
+        });
+    }
+}
+
+void SteamCallbacks::OnSteamNetworkingMessagesSessionRequest(SteamNetworkingMessagesSessionRequest_t *pCallback)
+{
+    if (!OnSteamNetworkingMessagesSessionRequestCallback.IsEmpty())
+    {
+        Napi::Env env = OnSteamNetworkingMessagesSessionRequestCallback.Env();
+
+        OnSteamNetworkingMessagesSessionRequestCallback.Call({
+            Napi::String::New(env, utils::uint64ToString(pCallback->m_identityRemote.GetSteamID64())),
+        });
+    }
+}
+
+void SteamCallbacks::OnSteamNetworkingMessagesSessionFailed(SteamNetworkingMessagesSessionFailed_t *pCallback)
+{
+    if (!OnSteamNetworkingMessagesSessionFailedCallback.IsEmpty())
+    {
+        Napi::Env env = OnSteamNetworkingMessagesSessionFailedCallback.Env();
+
+        OnSteamNetworkingMessagesSessionFailedCallback.Call({
+            Napi::String::New(env, utils::uint64ToString(pCallback->m_info.m_identityRemote.GetSteamID64())),
+            Napi::Number::New(env, pCallback->m_info.m_eState),
+            Napi::Number::New(env, pCallback->m_info.m_eEndReason),            
         });
     }
 }
