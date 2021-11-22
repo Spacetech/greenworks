@@ -23,6 +23,7 @@
 #define SET_FUNCTION_TPL(function_name, function) tpl.Set(function_name, Napi::Function::New(env, function))
 
 #define MESSAGE_CHANNEL 0
+#define MAX_MESSAGES 20
 
 SteamCallbacks *steamCallbacks = nullptr;
 
@@ -1354,53 +1355,66 @@ Napi::Value ReceiveMessagesOnChannel(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
-    if (info.Length() < 1 || !info[0].IsNumber())
+    // if (info.Length() < 1 || !info[0].IsNumber())
+    // {
+    //     THROW_BAD_ARGS("Bad arguments");
+    // }
+
+    // uint32 length = info[0].ToNumber().Uint32Value();
+
+    // bool useProvidedArray = info.Length() > 1 && info[1].IsTypedArray();
+
+    // Napi::Uint8Array array;
+
+    // if (useProvidedArray)
+    // {
+    //     array = info[1].As<Napi::TypedArray>().As<Napi::Uint8Array>();
+
+    //     if (array.ByteLength() < length)
+    //     {
+    //         THROW_BAD_ARGS("Bad arguments");
+    //     }
+    // }
+    // else
+    // {
+    //     array = Napi::Uint8Array::New(env, length);
+    // }
+
+    // if (networkingMessage == nullptr)
+    // {
+    //     networkingMessage = SteamNetworkingUtils()->AllocateMessage(0);
+    // }
+
+    // networkingMessage->m_pData = array.Data();
+    // networkingMessage->m_cbSize = sizeof(uint8_t) * length;
+
+    SteamNetworkingMessage_t *messages[MAX_MESSAGES];
+
+    int messageCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(MESSAGE_CHANNEL, messages, MAX_MESSAGES);
+    if (messageCount > 0)
     {
-        THROW_BAD_ARGS("Bad arguments");
-    }
+        Napi::Array result = Napi::Array::New(env, messageCount);
 
-    uint32 length = info[0].ToNumber().Uint32Value();
-
-    bool useProvidedArray = info.Length() > 1 && info[1].IsTypedArray();
-
-    Napi::Uint8Array array;
-
-    if (useProvidedArray)
-    {
-        array = info[1].As<Napi::TypedArray>().As<Napi::Uint8Array>();
-
-        if (array.ByteLength() < length)
+        for (int i = 0; i < messageCount; i++)
         {
-            THROW_BAD_ARGS("Bad arguments");
-        }
-    }
-    else
-    {
-        array = Napi::Uint8Array::New(env, length);
-    }
+            SteamNetworkingMessage_t *message = messages[i];
 
-    if (networkingMessage == nullptr)
-    {
-        networkingMessage = SteamNetworkingUtils()->AllocateMessage(0);
-    }
+            auto steamIdRemote = Napi::String::New(env, utils::uint64ToString(message->m_identityPeer.GetSteamID64()));
+            auto array = Napi::Uint8Array::New(env, message->m_cbSize);
+            memcpy(array.Data(), message->GetData(), message->m_cbSize);
 
-    networkingMessage->m_pData = array.Data();
-    networkingMessage->m_cbSize = sizeof(uint8_t) * length;
+            Napi::Object result = Napi::Object::New(env);
+            result.Set("steamIdRemote", steamIdRemote);
+            result.Set("data", array);
 
-    int messageCount = SteamNetworkingMessages()->ReceiveMessagesOnChannel(MESSAGE_CHANNEL, &networkingMessage, 1);
-    if (messageCount != 0)
-    {
-        auto steamIdRemoteString =
-            Napi::String::New(env, utils::uint64ToString(networkingMessage->m_identityPeer.GetSteamID64()));
-
-        if (useProvidedArray)
-        {
-            return steamIdRemoteString;
+            message->Release();
         }
 
-        Napi::Object result = Napi::Object::New(env);
-        result.Set("steamIdRemote", steamIdRemoteString);
-        result.Set("data", array);
+        // if (useProvidedArray)
+        // {
+        //     return steamIdRemoteString;
+        // }
+
         return result;
     }
 
