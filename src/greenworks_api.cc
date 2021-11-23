@@ -76,7 +76,7 @@ Napi::Object GetSteamUserCountType(Napi::Env env, int type_id)
     return account_type;
 }
 
-Napi::Value InitAPI(const Napi::CallbackInfo &info)
+Napi::Value Initialize(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
 
@@ -100,6 +100,15 @@ Napi::Value InitAPI(const Napi::CallbackInfo &info)
     }
 
     return Napi::Boolean::New(env, success);
+}
+
+Napi::Value Shutdown(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    SteamAPI_Shutdown();
+
+    return env.Undefined();
 }
 
 Napi::Value GetSteamId(const Napi::CallbackInfo &info)
@@ -1804,7 +1813,9 @@ void InitNetworkingObject(Napi::Env env, Napi::Object exports)
 Napi::Object InitAll(Napi::Env env, Napi::Object exports)
 {
     // Common APIs.
-    SET_FUNCTION("initAPI", InitAPI);
+    SET_FUNCTION("initialize", Initialize);
+    SET_FUNCTION("shutdown", Shutdown);
+
     SET_FUNCTION("getSteamId", GetSteamId);
     SET_FUNCTION("runCallbacks", RunCallbacks);
 
