@@ -1557,7 +1557,7 @@ Napi::Value SetSteamNetworkingDebugCallback(const Napi::CallbackInfo &info)
 
             auto pData = new DebugOutputMessageData();
             pData->nType = nType;
-            strcat_s(pData->pszMsg, sizeof pData->pszMsg, pszMsg);
+            snprintf(pData->pszMsg, sizeof pData->pszMsg, "%s", pszMsg);
 
             steamNetworkingDebugCallback.NonBlockingCall(pData, callback);
 
