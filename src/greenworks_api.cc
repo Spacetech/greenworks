@@ -1298,7 +1298,7 @@ Napi::Value SendMessageToUser(const Napi::CallbackInfo &info)
 
     EResult result = SteamNetworkingMessages()->SendMessageToUser(
         steamNetworkingIdentity, dst, length,
-        k_nSteamNetworkingSend_ReliableNoNagle | k_nSteamNetworkingSend_AutoRestartBrokenSession, MESSAGE_CHANNEL);
+        k_nSteamNetworkingSend_Reliable | k_nSteamNetworkingSend_AutoRestartBrokenSession, MESSAGE_CHANNEL);
 
     return Napi::Number::New(env, result);
 }
@@ -1403,9 +1403,11 @@ Napi::Value ReceiveMessagesOnChannel(const Napi::CallbackInfo &info)
             auto array = Napi::Uint8Array::New(env, message->m_cbSize);
             memcpy(array.Data(), message->GetData(), message->m_cbSize);
 
-            Napi::Object result = Napi::Object::New(env);
-            result.Set("steamIdRemote", steamIdRemote);
-            result.Set("data", array);
+            Napi::Object messageJsObject = Napi::Object::New(env);
+            messageJsObject.Set("steamIdRemote", steamIdRemote);
+            messageJsObject.Set("data", array);
+
+            result.Set(i, messageJsObject);
 
             message->Release();
         }
