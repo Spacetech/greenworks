@@ -17,6 +17,7 @@ SteamCallbacks::SteamCallbacks()
       SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionRequest), SETUP_STEAM_CALLBACK_MEMBER(OnP2PSessionConnectFail),
       SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingMessagesSessionRequest),
       SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingMessagesSessionFailed)
+    //   SETUP_STEAM_CALLBACK_MEMBER(OnSteamNetworkingConnectionStatus)
 {
 }
 
@@ -140,7 +141,22 @@ void SteamCallbacks::OnSteamNetworkingMessagesSessionFailed(SteamNetworkingMessa
         OnSteamNetworkingMessagesSessionFailedCallback.Call({
             Napi::String::New(env, utils::uint64ToString(pCallback->m_info.m_identityRemote.GetSteamID64())),
             Napi::Number::New(env, pCallback->m_info.m_eState),
-            Napi::Number::New(env, pCallback->m_info.m_eEndReason),            
+            Napi::Number::New(env, pCallback->m_info.m_eEndReason),
         });
     }
 }
+
+// void SteamCallbacks::OnSteamNetworkingConnectionStatus(SteamNetConnectionStatusChangedCallback_t *pCallback)
+// {
+//     if (!OnSteamNetworkingConnectionStatusCallback.IsEmpty())
+//     {
+//         Napi::Env env = OnSteamNetworkingConnectionStatusCallback.Env();
+
+//         OnSteamNetworkingConnectionStatusCallback.Call({
+//             Napi::String::New(env, utils::uint64ToString(pCallback->m_info.m_identityRemote.GetSteamID64())),
+//             Napi::Number::New(env, pCallback->m_info.m_eState),
+//             Napi::Number::New(env, pCallback->m_info.m_eEndReason),
+//             Napi::Number::New(env, pCallback->m_eOldState),
+//         });
+//     }
+// }

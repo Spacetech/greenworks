@@ -26,6 +26,7 @@
 #define MAX_MESSAGES 20
 
 SteamCallbacks *steamCallbacks = nullptr;
+Napi::ThreadSafeFunction steamNetworkingDebugCallback;
 
 Napi::Object GetSteamUserCountType(Napi::Env env, int type_id)
 {
@@ -86,6 +87,10 @@ Napi::Value InitAPI(const Napi::CallbackInfo &info)
         ISteamUserStats *steam_user_stats = SteamUserStats();
         steam_user_stats->RequestCurrentStats();
         steam_user_stats->RequestGlobalStats(1);
+
+        // Default is 512k (524288 bytes). up it to 5mb
+        SteamNetworkingUtils()->SetGlobalConfigValueInt32(
+            ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendBufferSize, 5242880);
 
         if (steamCallbacks == nullptr)
         {
@@ -1471,6 +1476,81 @@ Napi::Value SetSteamNetworkingMessagesSessionFailedCallback(const Napi::Callback
     return env.Undefined();
 }
 
+// Napi::Value SetSteamNetworkingConnectionStatusCallback(const Napi::CallbackInfo &info)
+// {
+//     Napi::Env env = info.Env();
+
+//     if (info.Length() < 1 || !info[0].IsFunction())
+//     {
+//         THROW_BAD_ARGS("Bad arguments");
+//     }
+
+//     if (steamCallbacks == nullptr)
+//     {
+//         THROW_BAD_ARGS("Internal error");
+//     }
+
+//     if (!steamCallbacks->OnSteamNetworkingConnectionStatusCallback.IsEmpty())
+//     {
+//         steamCallbacks->OnSteamNetworkingConnectionStatusCallback.Reset();
+//     }
+
+//     steamCallbacks->OnSteamNetworkingConnectionStatusCallback = Napi::Persistent(info[0].As<Napi::Function>());
+
+//     return env.Undefined();
+// }
+
+struct DebugOutputMessageData
+{
+    ESteamNetworkingSocketsDebugOutputType nType;
+    char pszMsg[1024];
+};
+
+Napi::Value SetSteamNetworkingDebugCallback(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 1 || !info[0].IsFunction())
+    {
+        THROW_BAD_ARGS("Bad arguments");
+    }
+
+    if (steamCallbacks == nullptr)
+    {
+        THROW_BAD_ARGS("Internal error");
+    }
+
+    // if (!steamNetworkingDebugCallback.IsEmpty())
+    // {
+    //     steamNetworkingDebugCallback.Reset();
+    // }
+
+    steamNetworkingDebugCallback = Napi::ThreadSafeFunction::New(env, info[0].As<Napi::Function>(), "TSFN", 0, 1);
+
+    SteamNetworkingUtils()->SetDebugOutputFunction(
+        ESteamNetworkingSocketsDebugOutputType::k_ESteamNetworkingSocketsDebugOutputType_Msg,
+        [](ESteamNetworkingSocketsDebugOutputType nType, const char *pszMsg) {
+            steamNetworkingDebugCallback.Acquire();
+
+            auto callback = [](Napi::Env env, Napi::Function jsCallback, DebugOutputMessageData *pData) {
+                jsCallback.Call(
+                    {Napi::Number::New(env, pData->nType), Napi::String::New(env, (const char *)pData->pszMsg)});
+
+                delete pData;
+            };
+
+            auto pData = new DebugOutputMessageData();
+            pData->nType = nType;
+            strcat_s(pData->pszMsg, sizeof pData->pszMsg, pszMsg);
+
+            steamNetworkingDebugCallback.NonBlockingCall(pData, callback);
+
+            steamNetworkingDebugCallback.Release();
+        });
+
+    return env.Undefined();
+}
+
 Napi::Value SetP2PSessionRequestCallback(const Napi::CallbackInfo &info)
 {
     Napi::Env env = info.Env();
@@ -1705,6 +1785,8 @@ void InitNetworkingObject(Napi::Env env, Napi::Object exports)
                      SetSteamNetworkingMessagesSessionRequestCallback);
     SET_FUNCTION_TPL("setSteamNetworkingMessagesSessionFailedCallback",
                      SetSteamNetworkingMessagesSessionFailedCallback);
+    // SET_FUNCTION_TPL("setSteamNetworkingConnectionStatusCallback", SetSteamNetworkingConnectionStatusCallback);
+    SET_FUNCTION_TPL("setSteamNetworkingDebugCallback", SetSteamNetworkingDebugCallback);
 
     // old
     SET_FUNCTION_TPL("acceptP2PSessionWithUser", AcceptP2PSessionWithUser);

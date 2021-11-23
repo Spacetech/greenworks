@@ -33,6 +33,9 @@ class SteamCallbacks
     SETUP_STEAM_CALLBACK_DECLARATION(OnP2PSessionConnectFail, P2PSessionConnectFail_t);
     SETUP_STEAM_CALLBACK_DECLARATION(OnSteamNetworkingMessagesSessionRequest, SteamNetworkingMessagesSessionRequest_t);
     SETUP_STEAM_CALLBACK_DECLARATION(OnSteamNetworkingMessagesSessionFailed, SteamNetworkingMessagesSessionFailed_t);
+
+    // not called for SteamNetworkingMessages :(
+    // SETUP_STEAM_CALLBACK_DECLARATION(OnSteamNetworkingConnectionStatus, SteamNetConnectionStatusChangedCallback_t);
 };
 
 #endif // SRC_STEAM_CALLBACKS_H_
