@@ -88,9 +88,9 @@ Napi::Value Initialize(const Napi::CallbackInfo &info)
         steam_user_stats->RequestCurrentStats();
         steam_user_stats->RequestGlobalStats(1);
 
-        // Default is 512k (524288 bytes). up it to 10mb (max)
+        // Default is 512k (524288 bytes). up it to 16mb 
         SteamNetworkingUtils()->SetGlobalConfigValueInt32(
-            ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendBufferSize, 0x10000000);
+            ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendBufferSize, 0x1000000);
 
         // set rates to max
         // https://github.com/ValveSoftware/GameNetworkingSockets/blob/657fb7a7fe57e3e4fcf406998a6242591c35bb2d/src/steamnetworkingsockets/clientlib/csteamnetworkingsockets.cpp#L73
