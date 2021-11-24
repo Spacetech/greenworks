@@ -88,16 +88,9 @@ Napi::Value Initialize(const Napi::CallbackInfo &info)
         steam_user_stats->RequestCurrentStats();
         steam_user_stats->RequestGlobalStats(1);
 
-        // Default is 512k (524288 bytes). up it to 16mb 
+        // Default is 512k (524288 bytes). up it to 16mb
         SteamNetworkingUtils()->SetGlobalConfigValueInt32(
             ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendBufferSize, 0x1000000);
-
-        // set rates to max
-        // https://github.com/ValveSoftware/GameNetworkingSockets/blob/657fb7a7fe57e3e4fcf406998a6242591c35bb2d/src/steamnetworkingsockets/clientlib/csteamnetworkingsockets.cpp#L73
-        SteamNetworkingUtils()->SetGlobalConfigValueInt32(
-            ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendRateMin, 0x10000000);
-        SteamNetworkingUtils()->SetGlobalConfigValueInt32(
-            ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendRateMax, 0x10000000);
 
         if (steamCallbacks == nullptr)
         {
@@ -1492,6 +1485,34 @@ Napi::Value SetSteamNetworkingMessagesSessionFailedCallback(const Napi::Callback
     return env.Undefined();
 }
 
+Napi::Value SetSteamNetworkingSendRates(const Napi::CallbackInfo &info)
+{
+    Napi::Env env = info.Env();
+
+    if (info.Length() < 2 || !info[0].IsNumber() || !info[1].IsNumber())
+    {
+        THROW_BAD_ARGS("Bad arguments");
+    }
+
+    int32 sendRateMin = info[0].ToNumber().Int32Value();
+    int32 sendRateMax = info[1].ToNumber().Int32Value();
+
+    // set rates to max
+    // https://github.com/ValveSoftware/GameNetworkingSockets/blob/657fb7a7fe57e3e4fcf406998a6242591c35bb2d/src/steamnetworkingsockets/clientlib/csteamnetworkingsockets.cpp#L73
+    // SteamNetworkingUtils()->SetGlobalConfigValueInt32(
+    //     ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendRateMin, 512*1024); // 512 worked
+    // SteamNetworkingUtils()->SetGlobalConfigValueInt32(
+    //     ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendRateMax, 1024*1024 * 5);
+
+    // SendRateMin being too high causes crashes
+    SteamNetworkingUtils()->SetGlobalConfigValueInt32(ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendRateMin,
+                                                      sendRateMin); // 512 worked
+    SteamNetworkingUtils()->SetGlobalConfigValueInt32(ESteamNetworkingConfigValue::k_ESteamNetworkingConfig_SendRateMax,
+                                                      sendRateMax);
+
+    return env.Undefined();
+}
+
 // Napi::Value SetSteamNetworkingConnectionStatusCallback(const Napi::CallbackInfo &info)
 // {
 //     Napi::Env env = info.Env();
@@ -1802,6 +1823,7 @@ void InitNetworkingObject(Napi::Env env, Napi::Object exports)
     SET_FUNCTION_TPL("setSteamNetworkingMessagesSessionFailedCallback",
                      SetSteamNetworkingMessagesSessionFailedCallback);
     // SET_FUNCTION_TPL("setSteamNetworkingConnectionStatusCallback", SetSteamNetworkingConnectionStatusCallback);
+    SET_FUNCTION_TPL("setSteamNetworkingSendRates", SetSteamNetworkingSendRates);
     SET_FUNCTION_TPL("setSteamNetworkingDebugCallback", SetSteamNetworkingDebugCallback);
 
     // old
