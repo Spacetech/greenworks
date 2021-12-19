@@ -112,6 +112,8 @@
               # zlib uses `if ((a == b))` for some reason.
               '-Wno-parentheses-equality',
             ],
+            # match steamworks sdk version
+            'MACOSX_DEPLOYMENT_TARGET': '10.10',
           },
           'cflags': [
             '-Wno-parentheses-equality',
