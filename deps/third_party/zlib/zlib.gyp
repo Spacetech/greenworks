@@ -59,6 +59,10 @@
           'toolsets': ['target', 'host'],
         }],
       ],
+      'xcode_settings': {
+        # match steamworks sdk version
+        'MACOSX_DEPLOYMENT_TARGET': '10.10',
+      },
     },
     {
       'target_name': 'minizip',
