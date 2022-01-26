@@ -1,5 +1,6 @@
 .vscode/.browse.VC.db
 node_modules/
+deps/steamworks_sdk
 build/
 lib/
 test/steam_appid.txt
